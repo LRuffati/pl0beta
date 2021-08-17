@@ -1,3 +1,5 @@
+from MixedTrees.src import MixedTrees as mxdt
+
 class SymbolTable:
     @classmethod
     def from_tables(cls, *tables):
@@ -8,13 +10,16 @@ class SymbolTable:
         :return:
         """
 
+    def append(self, *args, **kwargs):
+        print("Appending to symtab: ",args,kwargs)
 
-class Symbol:
-    pass
+    def lookup(self, targ: str):
+        pass
 
 
 class Type:
-    pass
+    def __init__(self, *args, **kwargs):
+        pass
 
 
 class LabelType(Type):

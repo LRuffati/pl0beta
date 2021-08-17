@@ -4,16 +4,20 @@ from functools import reduce
 
 import lexer
 import src.lexer
-from utils.logger import Logged
-from utils.exceptions import *
-import IR.ir as ir
-from IR.ir import IRNode
-from IR.symbols import *
+from src.utils.logger import Logged
+from src.utils.exceptions import *
+import src.IR.ir as ir
+from src.IR.ir import IRNode
+from src.IR.symbols import *
+from src.IR.ir import Symbol
 
 
 class Parser(Logged, ABC):
     def __init__(self, lexer: lexer.Lexer):
-        self.lxr: src.lexer.LexerIter = iter(lexer)
+        if type(lexer) is src.lexer.LexerIter:
+            self.lxr = lexer
+        else:
+            self.lxr: src.lexer.LexerIter = iter(lexer)
 
     @classmethod
     def create_parser(cls, lexer):
@@ -23,7 +27,7 @@ class Parser(Logged, ABC):
         if not isinstance(cls_to_parse, type):
             raise ParseException("Must receive the class, not an instance")
 
-        parse_el = self.create_parser(self.lxr)
+        parse_el = cls_to_parse.create_parser(self.lxr)
         return parse_el.parse(*args, **kwargs)
 
     @abc.abstractmethod
@@ -32,8 +36,9 @@ class Parser(Logged, ABC):
 
 
 class ArrayUtils(Parser, ABC):
-    def array_offset(self, symtab, target):
+    def array_offset(self, symtab: SymbolTable, target):
         offset = None
+        target: Symbol = symtab.lookup(target)
         if isinstance(target.stype, ArrayType):
             idxs = []
             for i in range(0, len(target.stype.dims)):

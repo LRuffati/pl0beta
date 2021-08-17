@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from typing import Optional
 
-from utils import LexerException
+from src.utils.exceptions import LexerException
 """Simple lexer for PL/0 using generators"""
 
 # Tokens can have multiple definitions if needed
@@ -104,7 +104,7 @@ class Lexer:
     def __iter__(self):
         return LexerIter(self)
 
-class LexerIter(iter):
+class LexerIter():
     def __init__(self, lexer):
         self.lxr = lexer.tokens()
 
@@ -159,6 +159,7 @@ class LexerIter(iter):
             v = self.prev_val
             s = self.prev_sym
             self.rollback = False
+            self.has_prev = True
             return s, v
 
         s, v = next(self.lxr)
