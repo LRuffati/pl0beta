@@ -1,0 +1,3 @@
+[submodule "MixedTrees"]
+	path = MixedTrees
+	url = git@github.com:LRuffati/MixedTrees.git

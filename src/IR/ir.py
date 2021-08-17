@@ -1,11 +1,13 @@
 import abc
 
 from src.IR.irUtils import *
-from symbols import *
+from src.IR.symbols import *
 import src.ControlFlow.lowered as lwr
 from src.utils.exceptions import IRException
 
-class IRNode(abc.ABC):
+from MixedTrees.src.MixedTrees import MixedTree as mxdT
+
+class IRNode(mxdT, lower=["children"]):
     """
     IRNodes have a parent and zero or more children
     They can be lowered to lowered statements that are
@@ -26,20 +28,6 @@ class IRNode(abc.ABC):
             self.children.append(c)
             c.parent = self
         self.symtab = symtab
-
-    def children_nodes(self) -> tuple[set[str], set[str]]:
-        """
-        This function is supposed to be extended by the user to notify
-        which attributes represent children nodes/lists of children nodes
-
-        All attributes / the elements of the lists must support the `navigate`
-        method
-
-        :return: A tuple where the first element is a list of attributes
-            containing a single node and the second is a list of attributes
-            containing a list of nodes
-        """
-        return set(), {"children"}
 
     def navigate(self, action, inplace=False, *args, **kwargs):
         """
@@ -88,7 +76,7 @@ class IRNode(abc.ABC):
         pass
 
 
-class Block(IRNode):
+class Block(IRNode, lower=['body','defs','glob','local']):
     """
     A block with a local symbol table, references to the global
     symbol table and to the definition list
@@ -108,10 +96,6 @@ class Block(IRNode):
         self.body.parent = self
         self.defs.parent = self
 
-    def children_nodes(self) -> tuple[set[str], set[str]]:
-        attrs, lsts = super().children_nodes()
-        return attrs.union(["body", "defs", "glob", "local"]), lsts
-
 
 class Placebo(IRNode):
     """
@@ -119,18 +103,20 @@ class Placebo(IRNode):
     """
 
 
-class Definition(IRNode):
+class Symbol(IRNode):
+    """Mixed tree as a base class is necessary since it's a node of a tree"""
+    def __init__(self, *args, **kwargs):
+        print("Init symbol with: ",args, kwargs)
+
+
+class Definition(IRNode, lower=['symbol']):
     def __init__(self, parent=None, symbol=None):
         super(Definition, self).__init__()
         self.parent = parent
         self.symbol = symbol
 
-    def children_nodes(self) -> tuple[set[str], set[str]]:
-        attrs, lsts = super().children_nodes()
-        return attrs.union(['symbol']), lsts
 
-
-class FunctionDef(Definition):
+class FunctionDef(Definition, lower=['body']):
     def __init__(self, symbol=None, body=None):
         super(FunctionDef, self).__init__(symbol=symbol)
         self.body = body
@@ -138,10 +124,6 @@ class FunctionDef(Definition):
 
     def get_global_symbols(self):
         return self.body.glob.exclude([TYPENAMES['function'], TYPENAMES['label']])
-
-    def children_nodes(self) -> tuple[set[str], set[str]]:
-        attrs, lsts = super().children_nodes()
-        return attrs.union(['body']), lsts
 
 
 class DefinitionList(IRNode):
@@ -207,7 +189,7 @@ class UnExpr(Expression):
         return lwr.StatList()
 
 
-class CallExpr(Expression):
+class CallExpr(Expression, lower=['symbol']):
     def __init__(self, parent=None, function=None, symtab=None, parameters=None):
         super(CallExpr, self).__init__(parent, [], symtab)
         self.symbol = function
@@ -217,7 +199,7 @@ class CallExpr(Expression):
 
 # Variables
 
-class Const(IRNode):
+class Const(IRNode, lower=['symbol']):
     """
     """
     def __init__(self, parent=None, value=None, symtab=None, symb=None):
@@ -228,7 +210,7 @@ class Const(IRNode):
     def lower(self) -> lwr.LoweredStat:
         pass
 
-class ArrayElement(IRNode):
+class ArrayElement(IRNode, lower=['symbol','offset']):
     """
     Loads in a temporary register the value pointed at by the
     symbol at the given offset
@@ -246,7 +228,7 @@ class ArrayElement(IRNode):
         self.offset = offset
 
 
-class Var(IRNode):
+class Var(IRNode, lower=['symbol']):
     """
     Loads in a temporary register the value pointed at by the symbol
     """
@@ -270,7 +252,7 @@ class Statement(IRNode):
         return self.label
 
 
-class AssignStat(Statement):
+class AssignStat(Statement, lower=['symbol', 'expr','offset']):
     def __init__(self, parent=None, 
                  target=None, offset=None, 
                  expression=None, symtab=None):
@@ -289,7 +271,7 @@ class AssignStat(Statement):
 
 
 
-class CallStat(Statement):
+class CallStat(Statement, lower=['call']):
     def __init__(self, parent=None, call_expr: CallExpr =None, symtab=None):
         super(CallStat, self).__init__(parent, [], symtab)
         self.call = call_expr
@@ -304,7 +286,7 @@ class StatList(Statement):
         self.children.append(statement)
 
 
-class IfStat(Statement):
+class IfStat(Statement, lower=['cond','then','elsep']):
     def __init__(self, parent=None,
                  cond=None, then=None, els=None, symtab=None):
         super(IfStat, self).__init__(parent,[],symtab)
@@ -317,7 +299,7 @@ class IfStat(Statement):
             self.elsep.parent = self
 
 
-class WhileStat(Statement):
+class WhileStat(Statement, lower=['cond','body']):
     def __init__(self, parent=None, cond=None, body=None, symtab=None):
         super(WhileStat, self).__init__(parent, [], symtab)
         self.cond = cond
@@ -326,12 +308,12 @@ class WhileStat(Statement):
         self.body.parent = self
 
 
-class PrintStat(Statement):
+class PrintStat(Statement,lower='expr'):
     def __init__(self, parent=None, exp=None, symtab=None):
-        super(PrintStat, self).__init__(parent, [exp], symtab)
+        super(PrintStat, self).__init__(parent, [], symtab)
         self.expr = exp
 
 
 class ReadStat(Statement):
-    def __init__(self, symtab=None):
+    def lower(self) -> lwr.LoweredStat:
         pass
