@@ -52,14 +52,14 @@ class ArrayUtils(Parser, ABC):
                 planedisp = 1
             idx = idxs[i]
             esize = (target.stype.basetype.size // 8)*planedisp
-            planed = ir.BinExpr(children=['times',
-                                          idx,
-                                          ir.Const(value=esize, symtab=symtab)],
+            planed = ir.BinExpr(op='times',
+                                operands=[idx, ir.Const(value=esize, symtab=symtab)],
                                 symtab=symtab)
             if offset is None:
                 offset = planed
             else:
-                offset = ir.BinExpr(children=['plus', offset, planed],
+                offset = ir.BinExpr(op='plus',
+                                    operands=[offset, planed],
                                     symtab=symtab)
         return offset
 
@@ -67,15 +67,15 @@ class ArrayUtils(Parser, ABC):
 class Program(Parser):
     def parse(self, *args, **kwargs) -> IRNode:
         global_symtab = SymbolTable()
-        prog = self.parse_item(Block, symtab=global_symtab)
+        prog = self.parse_item(Block, symtab=global_symtab, top_level=True)
         self.lxr.expect('period')
         return prog
 
 
 class Block(Parser):
-    def parse(self, *args, symtab, alloct='auto',**kwargs) -> IRNode:
+    def parse(self, *args, symtab, alloct='auto', top_level=False, **kwargs) -> IRNode:
         local = SymbolTable()
-        defs = DefinitionList()
+        defs = ir.DefinitionList()
 
         while True:
             if self.lxr.accept('constsym'):
@@ -93,7 +93,7 @@ class Block(Parser):
             defs.append(func)
 
         stat = self.parse_item(Statement, SymbolTable.from_tables(symtab, local))
-        return ir.Block(glob=symtab, local=local, defs=defs, body=stat)
+        return ir.Block(glob=symtab, local=local, defs=defs, body=stat, top_level=top_level)
 
 
 class ConstDef(Parser):
@@ -248,11 +248,11 @@ class Expression(Parser):
 
         expr = self.parse_item(Term, symtab)
         if op:
-            expr = ir.UnExpr(children=[op, expr], symtab=symtab)
+            expr = ir.UnExpr(op=op, trgt=expr, symtab=symtab)
         while tup:=self.lxr.accept('plus', 'minus'):
             op, _ = tup
             expr2 = self.parse_item(Term, symtab)
-            expr = ir.BinExpr(children=[op, expr, expr2], symtab=symtab)
+            expr = ir.BinExpr(op=op, operands=[expr, expr2], symtab=symtab)
 
         return expr
 
@@ -263,15 +263,15 @@ class Term(Parser):
         while tup := self.lxr.accept('times', 'slash'):
             op, _ = tup
             expr2 = self.parse_item(Factor, symtab)
-            expr = ir.BinExpr(children=[op, expr, expr2], symtab=symtab)
+            expr = ir.BinExpr(op=op, operands=[expr, expr2], symtab=symtab)
         return expr
 
 
 class Condition(Parser):
     def parse(self, symtab, *args, **kwargs) -> IRNode:
         if self.lxr.accept('oddsym'):
-            return ir.UnExpr(children=['odd',
-                                       self.parse_item(Expression, symtab)],
+            return ir.UnExpr(op='odd',
+                             trgt=self.parse_item(Expression, symtab),
                              symtab=symtab)
         else:
             expr = self.parse_item(Expression, symtab)
@@ -279,7 +279,7 @@ class Condition(Parser):
                 op, _ = tup
                 self.log("Condition operator: ", op)
                 expr2 = self.parse_item(Expression, symtab)
-                return ir.BinExpr(children=[op, expr, expr2], symtab=symtab)
+                return ir.BinExpr(op=op, operands=[expr, expr2], symtab=symtab)
             else:
                 raise ParseException("Invalid operator for condition")
 

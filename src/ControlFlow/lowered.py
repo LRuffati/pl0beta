@@ -1,5 +1,15 @@
 class LoweredStat:
-    pass
+    """
+    Lowered statements are low level statements which
+    can be directly converted to machine code as well
+    as analyzed to extract control flow information.
+    """
+
+    def destination(self):
+        pass
+
+    def emit_code(self):
+        pass
 
 
 class PrintStat(LoweredStat):

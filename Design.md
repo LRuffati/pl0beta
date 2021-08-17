@@ -46,6 +46,35 @@ These behave as a lookahead
 
 The code would check if 
 
+# Symbol tables
+Build a tree of symbol tables, by creating new symtabs through inheritance of
+old ones
+
+A local symtab will know automatically of its parent and have a method for finding
+symbols in that one as well.
+
+When a symbol is returned from the local it'll have the local qualifier, when it's
+global it'll have the global qualifier and when it's in a function being searched
+for by an inner function it'll contain the depth of its definition.
+
+So if I have:
+```
+global
+   var a
+   fun1:
+      fun2:
+         def b
+         fun3:
+            fun4:
+               def c
+               use a
+               use b
+               use c
+```
+
+when looking for `a` it'll return a global symbol, when looking for `c` a local
+symbol, and when looking for `b` it'll return that it's local at depth 2
+
 
 
 

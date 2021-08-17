@@ -13,10 +13,6 @@ class Symbol:
     pass
 
 
-class DefinitionList:
-    pass
-
-
 class Type:
     pass
 
