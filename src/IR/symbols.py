@@ -1,37 +1,95 @@
-from MixedTrees.src import MixedTrees as mxdt
+import ir
+from MixedTrees.src import MixedTrees as mxdT
+from functools import reduce
 
-class SymbolTable:
-    @classmethod
-    def from_tables(cls, *tables):
-        """
-        Obtain a symbol table by merging multiple symbol tables
-        Symbols in later tables overwrite symbols in previous ones
-        :param tables:
-        :return:
-        """
+from MixedTrees.src.MixedTrees import MixedTree as mxdT
+from src.ControlFlow.lowered import Codegen
 
-    def append(self, *args, **kwargs):
-        print("Appending to symtab: ",args,kwargs)
 
-    def lookup(self, targ: str):
-        pass
+class SymbolTable():
+    def __init__(self, *args, parent=None):
+        self.lst = list(args)
+        self.par = parent
+        if self.par is None:
+            self.lvl = 0
+        else:
+            self.lvl = self.par.lvl + 1
+
+    def append(self, symb):
+        self.lst.append(symb)
+
+    def lookup(self, targ: str, direct=True):
+        s: ir.Symbol
+        for s in self.lst:
+            if s.name == targ:
+                if direct:
+                    return s
+                if self.lvl == 0:
+                    return s # global vars
+                else:
+                    raise NotImplementedError("Need to implement properly indirect "
+                                              "lookup so that the symbol knows it "
+                                              "references a different stack frame "
+                                              "during codegen")
+        if self.par is not None:
+            return self.par.lookup(targ, direct=False)
+        print(f"Lookup for {targ} failed in {self}")
+        return None
+
+    def create_local(self) -> 'SymbolTable':
+        return SymbolTable(parent=self)
 
 
 class Type:
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, name, size, basetype, qualifiers=None):
+        if qualifiers is None:
+            qualifiers = []
+        self.qual_list = qualifiers
+
+        self.size = size
+        self.basetype = basetype
+
+        if name is None:
+            name = self.default_name()
+        self.name = name
+
+    def default_name(self):
+        n = ''
+        if 'unsigned' in self.qual_list:
+            n+='u'
+        n+= 'int'
+        n+= repr(self.size)
+        n+= '_t'
+        return n
 
 
 class LabelType(Type):
-    pass
+    def __init__(self):
+        super().__init__('label',0,'Label',[])
+        self.ids = 0
+
+    def __call__(self, target=None):
+        self.ids += 1
+        return ir.Symbol(name='label'+repr(self.ids), stype=self, value=target)
 
 
 class FunctionType(Type):
-    pass
+    def __init__(self):
+        super().__init__('function',0,'Function',[])
 
 
 class ArrayType(Type):
-    pass
+    def __init__(self, name, dims, basetype: Type):
+        self.dims = dims
+        super().__init__(name,
+                         reduce(lambda a, b: a*b, dims)*basetype.size,
+                         basetype)
+
+
+class PointerType(Type):
+    def __init__(self, ptr_to: Type):
+        super().__init__('&' + ptr_to.name, 32, 'Int', ['unsigned'])
+        self.pointed_type = ptr_to
 
 
 TYPENAMES = {
@@ -45,3 +103,31 @@ TYPENAMES = {
     'label': LabelType(),
     'function': FunctionType(),
 }
+
+
+class Symbol(mxdT, Codegen):
+    """Mixed tree as a base class is necessary since it's a node of a tree"""
+    def __init__(self, name, stype, value=None, alloct='auto'):
+        self.name = name
+        self.stype = stype
+        self.value = value
+        self.alloct = alloct
+        self.allocinfo = None
+
+    def set_alloc_info(self, allocinfo):
+        self.allocinfo = allocinfo
+
+    def __repr__(self):
+        val = ''
+        if type(self.value) is str:
+            val = self.value
+
+        base = self.alloct + ' '+ self.stype.name + ' ' + \
+               self.name + val
+
+        if self.allocinfo is not None:
+            base += "; " + repr(self.allocinfo)
+        return base
+
+    def emit_code(self):
+        pass

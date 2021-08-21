@@ -6,11 +6,12 @@ import lexer
 import src.lexer
 from src.utils.logger import Logged
 from src.utils.exceptions import *
-import src.IR.ir as ir
+import src.IR.ir
 from src.IR.ir import IRNode
 from src.IR.symbols import *
-from src.IR.ir import Symbol
+from src.IR.symbols import Symbol
 
+ir = src.IR.ir
 
 class Parser(Logged, ABC):
     def __init__(self, lexer: lexer.Lexer):
@@ -78,8 +79,13 @@ class Program(Parser):
 
 
 class Block(Parser):
-    def parse(self, *args, symtab, alloct='auto', top_level=False, **kwargs) -> IRNode:
-        local = SymbolTable()
+    def parse(self, *args, symtab: SymbolTable,
+              alloct='auto', top_level=False, **kwargs) -> IRNode:
+        if top_level:
+            local = symtab # if the block is the global block I need to use the global
+                            # table
+        else:
+            local = symtab.create_local()
         defs = ir.DefinitionList()
 
         while True:
@@ -97,8 +103,8 @@ class Block(Parser):
             func = self.parse_item(FuncDef, symtab=local)
             defs.append(func)
 
-        stat = self.parse_item(Statement, SymbolTable.from_tables(symtab, local))
-        return ir.Block(glob=symtab, local=local, defs=defs, body=stat, top_level=top_level)
+        stat = self.parse_item(Statement, local)
+        return ir.Block(symtab=local, defs=defs, body=stat, top_level=top_level)
 
 
 class ConstDef(Parser):
@@ -113,7 +119,7 @@ class ConstDef(Parser):
                           int(val))
             if not self.lxr.accept('comma'):
                 break
-        return ir.Placebo()
+        return src.IR.ir.Placebo()
 
 
 class VarDef(Parser):
@@ -135,18 +141,18 @@ class VarDef(Parser):
         else:
             symtab.append(Symbol(name, typ, alloct=alloct))
 
-        return ir.Placebo()
+        return src.IR.ir.Placebo()
 
 
 class FuncDef(Parser):
-    def parse(self, *args, symtab, **kwargs) -> IRNode:
+    def parse(self, *args, symtab: SymbolTable, **kwargs) -> IRNode:
         _, fname = self.lxr.expect('ident')
         self.lxr.expect('semicolon')
         symtab.append(Symbol(fname, TYPENAMES['function']))
 
         fbody = self.parse_item(Block, symtab=symtab)
         self.lxr.expect('semicolon')
-        return ir.FunctionDef(symbol=symtab.find(fname), body=fbody)
+        return ir.FunctionDef(symbol=symtab.lookup(fname), body=fbody)
 
 
 class Statement(Parser):
@@ -174,17 +180,17 @@ class Assignment(Statement, ArrayUtils):
         offset = self.array_offset(symtab, targ)
         self.lxr.expect('becomes')
         expr = self.parse_item(Expression, symtab)
-        return ir.AssignStat(target=targ,
+        return src.IR.ir.AssignStat(target=targ,
                              offset=offset,
                              expression=expr,
                              symtab=symtab)
 
 
 class FuncCall(Statement):
-    def parse(self, symtab, *args, **kwargs) -> IRNode:
+    def parse(self, symtab: SymbolTable, *args, **kwargs) -> IRNode:
         self.lxr.expect('callsym')
         _, fun = self.lxr.expect('ident')
-        return ir.CallStat(call_expr=ir.CallExpr(function=symtab.find(fun),
+        return ir.CallStat(call_expr=ir.CallExpr(function=symtab.lookup(fun),
                                                  symtab=symtab),
                            symtab=symtab)
 
@@ -234,10 +240,10 @@ class Print(Statement):
 
 
 class Read(ArrayUtils, Statement):
-    def parse(self, symtab, *args, **kwargs) -> IRNode:
+    def parse(self, symtab: SymbolTable, *args, **kwargs) -> IRNode:
         self.lxr.expect('read')
         _, targ = self.lxr.expect('ident')
-        target = symtab.find(targ)
+        target = symtab.lookup(targ)
         offset = self.array_offset(symtab, targ)
         return ir.AssignStat(target=target,
                              offset=offset,
@@ -293,7 +299,7 @@ class Factor(ArrayUtils, Parser):
     def parse(self, symtab, *args, **kwargs) -> IRNode:
         if tup := self.lxr.accept('ident'):
             _, var_n = tup
-            var = symtab.find(var_n)
+            var = symtab.lookup(var_n)
             offs = self.array_offset(symtab, var_n)
             if offs is None:
                 return ir.Var(var=var, symtab=symtab)
