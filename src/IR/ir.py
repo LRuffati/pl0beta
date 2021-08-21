@@ -269,9 +269,6 @@ class Statement(IRNode, ABC):
         self.label = label
         label.value = self
 
-    def get_label(self) -> LabelType:
-        return self.label
-
 
 class AssignStat(Statement, lower=['expr', 'offset']):
     def __init__(self, parent=None, 

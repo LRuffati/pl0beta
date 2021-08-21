@@ -2,8 +2,8 @@ import ir
 from MixedTrees.src import MixedTrees as mxdT
 from functools import reduce
 
+from src.utils.markers import Codegen
 from MixedTrees.src.MixedTrees import MixedTree as mxdT
-from src.ControlFlow.lowered import Codegen
 
 
 class SymbolTable():
@@ -38,6 +38,9 @@ class SymbolTable():
 
     def create_local(self) -> 'SymbolTable':
         return SymbolTable(parent=self)
+
+    def __iter__(self):
+        return iter(self.lst[:])
 
 
 class Type:
@@ -109,7 +112,7 @@ class Symbol(mxdT, Codegen):
     """Mixed tree as a base class is necessary since it's a node of a tree"""
     def __init__(self, name, stype, value=None, alloct='auto'):
         self.name = name
-        self.stype = stype
+        self.stype: Type = stype
         self.value = value
         self.alloct = alloct
         self.allocinfo = None

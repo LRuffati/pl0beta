@@ -96,12 +96,14 @@ class Lexer:
             if t:
                 yield 'ident', t
                 continue
-            try : t = self.text[self.pos] 
-            except Exception : t='end of file' # at end of file this will fail because self.pos >= len(self.text)
-            yield 'illegal', t
-            break
+            try:
+                t = self.text[self.pos]
+            except Exception:
+                t = 'end of file' # at end of file this will fail because self.pos >= len(self.text)
+                yield 'illegal', t
+                break
 
-    def __iter__(self):
+    def __iter__(self) -> 'LexerIter':
         return LexerIter(self)
 
 class LexerIter():
@@ -151,7 +153,7 @@ class LexerIter():
         """
         r = self.accept(sym, *alts)
         if r is None:
-            LexerException("Expecting ", sym, " failed")
+            raise LexerException("Expecting ", sym, " failed")
         return r
 
     def __next__(self):

@@ -1,9 +1,7 @@
 import abc
 from abc import ABC
-from functools import reduce
 
-import lexer
-import src.lexer
+import src.lexer as lexer
 from src.utils.logger import Logged
 from src.utils.exceptions import *
 import src.IR.ir
@@ -13,12 +11,13 @@ from src.IR.symbols import Symbol
 
 ir = src.IR.ir
 
+
 class Parser(Logged, ABC):
-    def __init__(self, lexer: lexer.Lexer):
-        if type(lexer) is src.lexer.LexerIter:
-            self.lxr = lexer
+    def __init__(self, lxr: lexer.Lexer):
+        if type(lxr) is src.lexer.LexerIter:
+            self.lxr = lxr
         else:
-            self.lxr: src.lexer.LexerIter = iter(lexer)
+            self.lxr: src.lexer.LexerIter = iter(lxr)
 
     @classmethod
     def create_parser(cls, lexer):
@@ -27,7 +26,8 @@ class Parser(Logged, ABC):
     def parse_item(self, cls_to_parse, *args, **kwargs):
         if not isinstance(cls_to_parse, type):
             raise ParseException("Must receive the class, not an instance")
-
+        if not issubclass(cls_to_parse, Parser):
+            raise ParseException("The class must be an instance of Parser")
         parse_el = cls_to_parse.create_parser(self.lxr)
         return parse_el.parse(*args, **kwargs)
 
@@ -49,15 +49,16 @@ class ArrayUtils(Parser, ABC):
             offset = self.linearize_multid_vector(idxs, target, symtab)
         return offset
 
-    def linearize_multid_vector(self, idxs, target, symtab):
+    @staticmethod
+    def linearize_multid_vector(idxs, target, symtab):
         offset = None
         for i in range(0, len(target.stype.dims)):
-            if i+1 < len(target.stype.dims):
-                planedisp = reduce(lambda x, y: x*y, target.stype.dims[i+1:])
+            if i + 1 < len(target.stype.dims):
+                planedisp = reduce(lambda x, y: x * y, target.stype.dims[i + 1:])
             else:
                 planedisp = 1
             idx = idxs[i]
-            esize = (target.stype.basetype.size // 8)*planedisp
+            esize = (target.stype.basetype.size // 8) * planedisp
             planed = ir.BinExpr(op='times',
                                 operands=[idx, ir.Const(value=esize, symtab=symtab)],
                                 symtab=symtab)
@@ -82,8 +83,8 @@ class Block(Parser):
     def parse(self, *args, symtab: SymbolTable,
               alloct='auto', top_level=False, **kwargs) -> IRNode:
         if top_level:
-            local = symtab # if the block is the global block I need to use the global
-                            # table
+            local = symtab  # if the block is the global block I need to use the global
+            # table
         else:
             local = symtab.create_local()
         defs = ir.DefinitionList()
@@ -123,7 +124,7 @@ class ConstDef(Parser):
 
 
 class VarDef(Parser):
-    def parse(self, *args, symtab, alloct='auto',**kwargs) -> IRNode:
+    def parse(self, *args, symtab, alloct='auto', **kwargs) -> IRNode:
         _, name = self.lxr.expect('ident')
         size = []
         while self.lxr.accept('lspar'):
@@ -136,7 +137,7 @@ class VarDef(Parser):
             _, typ = self.lxr.accept('ident')
             typ = TYPENAMES[typ]
 
-        if len(size)>0:
+        if len(size) > 0:
             symtab.append(Symbol(name, ArrayType(None, size, typ), alloct=alloct))
         else:
             symtab.append(Symbol(name, typ, alloct=alloct))
@@ -174,16 +175,18 @@ class Statement(Parser):
         else:
             raise ParseException("Can't parse Statement")
 
+
 class Assignment(Statement, ArrayUtils):
-    def parse(self, symtab, *args, **kwargs) -> IRNode:
+    def parse(self, symtab: SymbolTable, *args, **kwargs) -> IRNode:
         _, targ = self.lxr.expect('ident')
         offset = self.array_offset(symtab, targ)
         self.lxr.expect('becomes')
         expr = self.parse_item(Expression, symtab)
+        targ = symtab.lookup(targ)
         return src.IR.ir.AssignStat(target=targ,
-                             offset=offset,
-                             expression=expr,
-                             symtab=symtab)
+                                    offset=offset,
+                                    expression=expr,
+                                    symtab=symtab)
 
 
 class FuncCall(Statement):
@@ -254,13 +257,13 @@ class Read(ArrayUtils, Statement):
 class Expression(Parser):
     def parse(self, symtab, *args, **kwargs) -> IRNode:
         op = None
-        if tup:=self.lxr.accept('plus', 'minus'):
+        if tup := self.lxr.accept('plus', 'minus'):
             op, _ = tup
 
         expr = self.parse_item(Term, symtab)
         if op:
             expr = ir.UnExpr(op=op, trgt=expr, symtab=symtab)
-        while tup:=self.lxr.accept('plus', 'minus'):
+        while tup := self.lxr.accept('plus', 'minus'):
             op, _ = tup
             expr2 = self.parse_item(Term, symtab)
             expr = ir.BinExpr(op=op, operands=[expr, expr2], symtab=symtab)
