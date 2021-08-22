@@ -1,18 +1,22 @@
+from functools import reduce
 from typing import Optional as Opt
 
 import src.ControlFlow.lowered as lwr
-from src.IR.symbols import Symbol, TYPENAMES
+from src.IR.symbols import Symbol, TYPENAMES, SymbolTable
 from src.utils.exceptions import CFGException
 
 
 class BasicBlock:
-    def __init__(self):
+    def __init__(self, function, symtab):
         self.statements: list[lwr.LoweredStat] = []
         self.label_in: Opt[Symbol] = None
-        self.next: Opt['BasicBlock'] = None # the next
+        self.next: Opt['BasicBlock'] = None  # the next
         self.next_lab: Opt[Symbol] = None
-        self.target: Opt['BasicBlock'] = None # the target of a branch instruction
+        self.target: Opt['BasicBlock'] = None  # the target of a branch instruction
         self.target_lab: Opt[Symbol] = None
+
+        self.function: Opt[Symbol] = function  # if None then it's part of the global function
+        self.symtab: SymbolTable = symtab
 
         # v properties for later
         self.kill: Opt[set[Symbol]] = None
@@ -34,7 +38,7 @@ class BasicBlock:
             if len(self.statements):
                 self.finalize()
                 compl = self
-                new = BasicBlock()
+                new = BasicBlock(self.function, self.symtab)
                 _, new = new.append(instr)
                 return compl, new
             else:
@@ -45,7 +49,7 @@ class BasicBlock:
         if isinstance(instr, lwr.BranchStat) and not instr.rets:
             self.finalize()
             self.target_lab = instr.target
-            new = BasicBlock()
+            new = BasicBlock(self.function, self.symtab)
             return self, new
         return None, self
 
@@ -108,8 +112,39 @@ class BasicBlock:
             s.add(self.next_lab)
         return s
 
-    def liveness_iter(self):
-        pass
+    def liveness_iter(self) -> bool:
+        lin = len(self.live_in)
+        lout = len(self.live_out)
+        if len(succs := self.successors()) != 0:
+            # live_out = union of all live ins of followers
+            self.live_out = reduce(lambda x, y: x.union(y),
+                                   [s.live_in for s in succs],
+                                   set())
+        else:
+            # for final nodes live_out is only the global variables
+            func = self.function
+            if func is None:
+                self.live_out = set()
+            else:
+                globs = self.symtab.get_global_symbols()
+                self.live_out = set(globs)
+
+        self.live_in = self.gen | (self.live_out - self.kill)
+        return not ((lin == len(self.live_in)) and (lout == len(self.live_out)))
+
+    def instr_liveness(self):
+        """
+        Backwards evaluation of instruction level liveness
+        :return:
+        """
+        currently_live = self.live_out
+
+        i: lwr.LoweredStat
+        for i in reversed(self.statements):
+            currently_live -= i.get_defined()
+            currently_live |= i.get_used()
+        if not currently_live == self.live_in:
+            raise CFGException("Block level and instruction level liveness don't match")
 
     def is_empty(self) -> bool:
         try:
@@ -132,7 +167,6 @@ class BasicBlock:
                 if i.rets:
                     s.add(i.target)
         return s
-
 
     def __repr__(self):
         if self.label_in:

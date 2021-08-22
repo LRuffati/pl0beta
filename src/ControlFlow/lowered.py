@@ -139,6 +139,9 @@ class StatList(LoweredStat):
     def __init__(self, *, children=None, symtab=None):
         self.children = []
         dest = None
+        self.function: Opt[Symbol] = None # if function is None after the full
+                                          # tree has been lowered then it is the
+                                          # global function
 
         i: LoweredStat
         for i in children:
@@ -157,7 +160,7 @@ class StatList(LoweredStat):
 
     def to_bbs(self) -> list[BasicBlock]:
         bbs = []
-        bb = BasicBlock()
+        bb = BasicBlock(self.function, self.symtab)
         for instr in self.children:
             compl, bb = bb.append(instr)
             if compl:
@@ -185,6 +188,9 @@ class StatList(LoweredStat):
         for ins in self.children:
             s.update(ins.get_used())
         return s
+
+    def bind_to_func(self, function: Symbol):
+        self.function = function
 
 
 class LoweredBlock(LoweredStat, DataLayout):
@@ -239,6 +245,7 @@ class LoweredDef(LoweredStat, DataLayout):
         self.body: LoweredBlock = body
         self.symtab = symtab
         self.function = func
+        self.body.body.bind_to_func(self.function)
 
     def perform_data_layout(self):
         self.body.perform_data_layout()

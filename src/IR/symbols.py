@@ -1,4 +1,3 @@
-import ir
 from MixedTrees.src import MixedTrees as mxdT
 from functools import reduce
 
@@ -19,7 +18,6 @@ class SymbolTable():
         self.lst.append(symb)
 
     def lookup(self, targ: str, direct=True):
-        s: ir.Symbol
         for s in self.lst:
             if s.name == targ:
                 if direct:
@@ -41,6 +39,23 @@ class SymbolTable():
 
     def __iter__(self):
         return iter(self.lst[:])
+
+    def get_global(self) -> 'SymbolTable':
+        v = self
+        while v.lvl != 0:
+            v = v.par
+        return v
+
+    def get_global_symbols(self):
+        g = self.get_global()
+        syms = []
+
+        s: Symbol
+        for s in g:
+            if s.stype not in [TYPENAMES['function'], TYPENAMES['label']]:
+                syms.append(s)
+        return syms
+
 
 
 class Type:
@@ -73,7 +88,7 @@ class LabelType(Type):
 
     def __call__(self, target=None):
         self.ids += 1
-        return ir.Symbol(name='label_'+repr(self.ids), stype=self, value=target)
+        return Symbol(name='label_'+repr(self.ids), stype=self, value=target)
 
 
 class FunctionType(Type):

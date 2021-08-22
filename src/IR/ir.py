@@ -102,9 +102,6 @@ class FunctionDef(Definition, lower=['body']):
         self.body = body
         self.body.parent = self
 
-    def get_global_symbols(self):
-        return self.body.glob.exclude([TYPENAMES['function'], TYPENAMES['label']])
-
     def lower(self) -> lwr.LoweredDef:
         return lwr.LoweredDef(body=self.body.lowered, symtab=self.symtab, func=self.symbol)
 

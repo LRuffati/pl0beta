@@ -12,7 +12,6 @@ class CFG(list):
         self.global_entry = None
         self.functions = {}
 
-        stat_list_to_func = {}
         while True:
             try:
                 el = queue.pop()
@@ -21,19 +20,14 @@ class CFG(list):
 
             if isinstance(el, LoweredBlock):
                 queue.append(el.body)
-                if el.top_lev:
-                    glob_stat_lst = el.body
-
                 for i in el.defs.defs:
-                    stat_list_to_func[i.body.body] = i.function
                     queue.append(i.body)
 
             if isinstance(el, StatList):
                 bbs = el.to_bbs()
-                if el == glob_stat_lst:
+                if (fun := el.function) is None:
                     self.global_entry = bbs[0].label_in
                 else:
-                    fun = stat_list_to_func.pop(el)
                     self.functions[fun] = bbs[0].label_in
                 self.extend(bbs)
 
@@ -60,3 +54,25 @@ class CFG(list):
 
     def get_heads(self):
         return self.heads_labels.copy()
+
+    def find_pred(self, label: Symbol) -> set[BasicBlock]:
+        """
+        Returns a set of basic blocks such that for each of them
+        label is in their `.get_followers_labels`
+        :param label:
+        :return:
+        """
+        s = set()
+        i: BasicBlock
+        for i in self:
+            if label in i.get_follower_labels():
+                s.add(i)
+        return s
+
+    def liveness(self):
+        bb: BasicBlock
+        while any(map(lambda bb: bb.liveness_iter(), self)):
+            pass
+
+        for bb in self:
+            bb.instr_liveness()
