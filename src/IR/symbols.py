@@ -73,7 +73,7 @@ class LabelType(Type):
 
     def __call__(self, target=None):
         self.ids += 1
-        return ir.Symbol(name='label'+repr(self.ids), stype=self, value=target)
+        return ir.Symbol(name='label_'+repr(self.ids), stype=self, value=target)
 
 
 class FunctionType(Type):

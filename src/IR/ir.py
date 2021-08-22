@@ -106,7 +106,7 @@ class FunctionDef(Definition, lower=['body']):
         return self.body.glob.exclude([TYPENAMES['function'], TYPENAMES['label']])
 
     def lower(self) -> lwr.LoweredDef:
-        return lwr.LoweredDef(body=self.body.lowered, symtab=self.symtab)
+        return lwr.LoweredDef(body=self.body.lowered, symtab=self.symtab, func=self.symbol)
 
 
 class DefinitionList(IRNode):

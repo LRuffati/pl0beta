@@ -1,6 +1,7 @@
 import abc
 from typing import Optional as Opt
 
+from src.utils.exceptions import IRException
 from src.utils.markers import Codegen, DataLayout
 from src.IR.symbols import SymbolTable, Symbol
 from src.ControlFlow.DataLayout import GlobalSymbolLayout, LocalSymbolLayout
@@ -99,6 +100,10 @@ class LoadStat(LoweredStat):
         self.symbol = symbol
         self.symtab = symtab
         # TODO: add def/use sets
+        if self.dest.alloct != 'reg':
+            raise IRException("Load not to a register")
+        self.use_set = {self.symbol}
+        self.def_set = {self.dest}
 
 
 class LoadImmStat(LoweredStat):
@@ -106,6 +111,7 @@ class LoadImmStat(LoweredStat):
         super().__init__(dest=dest)
         self.val = val
         self.symtab = symtab
+        self.def_set = {self.dest}
 
 
 class BinStat(LoweredStat):
@@ -115,6 +121,8 @@ class BinStat(LoweredStat):
         self.srca = srca
         self.srcb = srcb
         self.symtab = symtab
+        self.def_set = {self.dest}
+        self.use_set = {self.srcb, self.srca}
 
 
 class UnaryStat(LoweredStat):
@@ -123,6 +131,8 @@ class UnaryStat(LoweredStat):
         self.op = op
         self.src = src
         self.symtab = symtab
+        self.def_set = {self.dest}
+        self.use_set = {self.src}
 
 
 class StatList(LoweredStat):
@@ -167,7 +177,14 @@ class StatList(LoweredStat):
         labSt.set_label(label)
         self.children.insert(0, labSt)
 
+    def get_defined(self) -> set[Symbol]:
+        return set()
 
+    def get_used(self) -> set[Symbol]:
+        s = set()
+        for ins in self.children:
+            s.update(ins.get_used())
+        return s
 
 
 class LoweredBlock(LoweredStat, DataLayout):
@@ -217,10 +234,11 @@ class LoweredBlock(LoweredStat, DataLayout):
 
 
 class LoweredDef(LoweredStat, DataLayout):
-    def __init__(self, *, body, symtab):
+    def __init__(self, *, body, symtab, func: Symbol):
         super(LoweredDef, self).__init__()
         self.body: LoweredBlock = body
         self.symtab = symtab
+        self.function = func
 
     def perform_data_layout(self):
         self.body.perform_data_layout()

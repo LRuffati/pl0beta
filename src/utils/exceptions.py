@@ -8,3 +8,7 @@ class LexerException(Exception):
 
 class IRException(Exception):
     pass
+
+
+class CFGException(Exception):
+    pass
