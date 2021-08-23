@@ -1,7 +1,7 @@
 from functools import reduce
 from typing import Optional as Opt
 
-import src.ControlFlow.lowered as lwr
+import src.Codegen.lowered as lwr
 from src.IR.symbols import Symbol, TYPENAMES, SymbolTable
 from src.utils.exceptions import CFGException
 

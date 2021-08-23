@@ -1,5 +1,5 @@
 from src.ControlFlow.BBs import BasicBlock
-from src.ControlFlow.lowered import LoweredBlock, LowDefList, LoweredDef, StatList
+from src.Codegen.lowered import LoweredBlock, StatList
 from src.IR.symbols import Symbol
 from src.utils.exceptions import CFGException
 

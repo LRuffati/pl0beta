@@ -2,8 +2,7 @@
 Executed after the lowering phase to associate all variables and their respective
 data information
 """
-import src
-import src.ControlFlow.lowered as lwr
+import src.Codegen.lowered as lwr
 
 
 class SymbolLayout:

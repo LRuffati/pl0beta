@@ -1,6 +1,6 @@
 from src.ControlFlow.BBs import BasicBlock
 from src.ControlFlow.CFG import CFG
-import src.ControlFlow.lowered as lwr
+import src.Codegen.lowered as lwr
 from src.IR.symbols import Symbol
 
 from collections import namedtuple

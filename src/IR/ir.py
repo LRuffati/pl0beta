@@ -4,7 +4,7 @@ from typing import Optional as Opt
 
 from src.IR.irUtils import *
 from src.IR.symbols import *
-import src.ControlFlow.lowered as lwr
+import src.Codegen.lowered as lwr
 from src.utils.exceptions import IRException
 
 from MixedTrees.src.MixedTrees import MixedTree as mxdT
