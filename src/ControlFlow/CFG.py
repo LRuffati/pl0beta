@@ -1,16 +1,18 @@
+from typing import Optional as Opt
+
 from src.ControlFlow.BBs import BasicBlock
-from src.Codegen.lowered import LoweredBlock, StatList
+from src.Codegen.lowered import StatList
+from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef
 from src.IR.symbols import Symbol
 from src.utils.exceptions import CFGException
 
 
-class CFG(list):
+class CFG:
     def __init__(self, program: LoweredBlock):
-        super(CFG, self).__init__()
         queue = [program]
         glob_stat_lst = None
-        self.global_entry = None
-        self.functions = {}
+        self.global_block: Opt[LoweredBlock] = None
+        self.functions: dict[Symbol, LoweredBlock] = {}
 
         while True:
             try:
@@ -19,17 +21,15 @@ class CFG(list):
                 break
 
             if isinstance(el, LoweredBlock):
+                for i in el.defs.lst:
+                    i: LoweredDef
+                    queue.append(i)
+                _ = el.to_bbs()
+                if el.function is None:
+                    self.global_block = el
+            elif isinstance(el, LoweredDef):
+                self.functions[el.function] = el.body
                 queue.append(el.body)
-                for i in el.defs.defs:
-                    queue.append(i.body)
-
-            if isinstance(el, StatList):
-                bbs = el.to_bbs()
-                if (fun := el.function) is None:
-                    self.global_entry = bbs[0].label_in
-                else:
-                    self.functions[fun] = bbs[0].label_in
-                self.extend(bbs)
 
         blocks_labs: set[Symbol] = set()
         follows_labs: set[Symbol] = set()
@@ -76,3 +76,26 @@ class CFG(list):
 
         for bb in self:
             bb.instr_liveness()
+
+    def __iter__(self):
+        return CFGIter(self)
+
+class CFGIter:
+    def __init__(self, cfg: CFG):
+        self.queue: list[BasicBlock] = []
+        for _, b in cfg.functions.items():
+            b: LoweredBlock
+            self.queue.append(b.entry_bb)
+        self.queue.append(cfg.global_block.entry_bb)
+        self.visited = set()
+
+    def __next__(self):
+        try:
+            bb = self.queue.pop()
+            nxt = set(bb.successors())
+            self.visited.add(bb)
+            self.queue.extend(nxt - self.visited)
+            return bb
+        except IndexError:
+            raise StopIteration()
+

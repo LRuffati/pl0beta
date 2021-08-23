@@ -2,18 +2,18 @@ import abc
 from typing import Optional as Opt
 
 from src.utils.exceptions import IRException
-from src.utils.markers import Codegen, DataLayout
-from src.IR.symbols import SymbolTable, Symbol
-from src.ControlFlow.DataLayout import GlobalSymbolLayout, LocalSymbolLayout
+from src.utils.markers import Codegen, Lowered
+from src.IR.symbols import Symbol
 from src.ControlFlow.BBs import BasicBlock
 
 
-class LoweredStat(Codegen):
+class LoweredStat(Lowered):
     """
     Lowered statements are low level statements which
     can be directly converted to machine code as well
     as analyzed to extract control flow information.
     """
+
     def __init__(self, *, dest=None, label=None):
         self.dest = dest
         self.label = label
@@ -49,7 +49,7 @@ class PrintStat(LoweredStat):
         self.use_set = {src}
 
     def __repr__(self):
-        return f"{repr(self.label)+': ' if self.label else ''}print {self.src}"
+        return f"{repr(self.label) + ': ' if self.label else ''}print {self.src}"
 
 
 class ReadStat(LoweredStat):
@@ -59,7 +59,7 @@ class ReadStat(LoweredStat):
         self.def_set = {dest}
 
     def __repr__(self):
-        return f"{repr(self.label)+': ' if self.label else ''}{self.dest} <- read"
+        return f"{repr(self.label) + ': ' if self.label else ''}{self.dest} <- read"
 
 
 class BranchStat(LoweredStat):
@@ -78,9 +78,9 @@ class BranchStat(LoweredStat):
         if self.condition is not None:
             cond = f"if {'not' if self.negcond else ''}{self.condition}"
         if self.rets:
-            return f"{repr(self.label)+': ' if self.label else ''}call {self.target} {cond}"
+            return f"{repr(self.label) + ': ' if self.label else ''}call {self.target} {cond}"
         else:
-            return f"{repr(self.label)+': ' if self.label else ''}jump to {self.target} {cond}"
+            return f"{repr(self.label) + ': ' if self.label else ''}jump to {self.target} {cond}"
 
 
 class EmptyStat(LoweredStat):
@@ -101,7 +101,7 @@ class LoadPtrToSymb(LoweredStat):
         self.def_set = {self.dest}
 
     def __repr__(self):
-        return f"{repr(self.label)+': ' if self.label else ''}{self.dest} <- ADDR[{self.symbol}]"
+        return f"{repr(self.label) + ': ' if self.label else ''}{self.dest} <- ADDR[{self.symbol}]"
 
 
 class StoreStat(LoweredStat):
@@ -117,9 +117,9 @@ class StoreStat(LoweredStat):
 
     def __repr__(self):
         if self.dest.alloct == 'reg':
-            return f"{repr(self.label)+': ' if self.label else ''}{self.dest} <- {self.symbol}"
+            return f"{repr(self.label) + ': ' if self.label else ''}{self.dest} <- {self.symbol}"
         else:
-            return f"{repr(self.label)+': ' if self.label else ''}MEM[{self.dest}] <- {self.symbol}"
+            return f"{repr(self.label) + ': ' if self.label else ''}MEM[{self.dest}] <- {self.symbol}"
 
 
 class LoadStat(LoweredStat):
@@ -134,7 +134,7 @@ class LoadStat(LoweredStat):
         self.def_set = {self.dest}
 
     def __repr__(self):
-        return f"{repr(self.label)+': ' if self.label else ''}{self.dest} <- {self.symbol}"
+        return f"{repr(self.label) + ': ' if self.label else ''}{self.dest} <- {self.symbol}"
 
 
 class LoadImmStat(LoweredStat):
@@ -145,7 +145,7 @@ class LoadImmStat(LoweredStat):
         self.def_set = {self.dest}
 
     def __repr__(self):
-        return f"{repr(self.label)+': ' if self.label else ''}{self.dest} <- IMM[{self.val}]"
+        return f"{repr(self.label) + ': ' if self.label else ''}{self.dest} <- IMM[{self.val}]"
 
 
 class BinStat(LoweredStat):
@@ -159,7 +159,7 @@ class BinStat(LoweredStat):
         self.use_set = {self.srcb, self.srca}
 
     def __repr__(self):
-        return f"{repr(self.label)+': ' if self.label else ''}{self.dest} <- {self.srca} '{self.op}' {self.srcb}"
+        return f"{repr(self.label) + ': ' if self.label else ''}{self.dest} <- {self.srca} '{self.op}' {self.srcb}"
 
 
 class UnaryStat(LoweredStat):
@@ -172,16 +172,16 @@ class UnaryStat(LoweredStat):
         self.use_set = {self.src}
 
     def __repr__(self):
-        return f"{repr(self.label)+': ' if self.label else ''}{self.dest} <- '{self.op}' {self.src}"
+        return f"{repr(self.label) + ': ' if self.label else ''}{self.dest} <- '{self.op}' {self.src}"
 
 
 class StatList(LoweredStat):
     def __init__(self, *, children=None, symtab=None):
         self.children = []
         dest = None
-        self.function: Opt[Symbol] = None # if function is None after the full
-                                          # tree has been lowered then it is the
-                                          # global function
+        self.function: Opt[Symbol] = None  # if function is None after the full
+        # tree has been lowered then it is the
+        # global function
 
         i: LoweredStat
         for i in children:
@@ -235,67 +235,3 @@ class StatList(LoweredStat):
     def __repr__(self):
         return f"Statlist{f' of {self.function}' if self.function else ''} " \
                f"of {len(self.children)} statements"
-
-
-class LoweredBlock(LoweredStat, DataLayout):
-    def __init__(self, *, symtab, top_level, body, defs):
-        super(LoweredBlock, self).__init__()
-        self.symtab: SymbolTable = symtab
-        self.top_lev = top_level
-        self.body: StatList = body
-        self.defs: LowDefList = defs
-        # ^ Info from lowering
-        # v Info from analysis
-        self.local_vars_space = None
-
-    def perform_data_layout(self):
-        """
-        Perform layout of the local variables (and possibly args), assign global if
-        self.top_lev is asserted
-
-        Then perform the data layout of all defined functions
-        :return: None
-        """
-        if self.top_lev:
-            prefix = "_g_"
-
-            var: Symbol
-            for var in self.symtab:
-                if var.stype.size == 0:
-                    continue
-                var.set_alloc_info(GlobalSymbolLayout(prefix+var.name, var.stype.size//8))
-        else:
-            prefix = "_l_"
-            offs = 0
-            for var in self.symtab:
-                if var.stype.size == 0:
-                    continue
-                bsize = var.stype.size // 8
-                offs -= bsize
-                var.set_alloc_info(LocalSymbolLayout(prefix + var.name,
-                                                     offs,
-                                                     bsize,
-                                                     self.symtab.lvl))
-
-        i: LoweredDef
-        for i in self.defs.defs:
-            i.perform_data_layout()
-        return
-
-
-class LoweredDef(LoweredStat, DataLayout):
-    def __init__(self, *, body, symtab, func: Symbol):
-        super(LoweredDef, self).__init__()
-        self.body: LoweredBlock = body
-        self.symtab = symtab
-        self.function = func
-        self.body.body.bind_to_func(self.function)
-
-    def perform_data_layout(self):
-        self.body.perform_data_layout()
-
-
-class LowDefList(LoweredStat):
-    def __init__(self, *, children):
-        super(LowDefList, self).__init__()
-        self.defs: list[LoweredDef] = children

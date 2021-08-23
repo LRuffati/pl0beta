@@ -74,15 +74,15 @@ class ArrayUtils(Parser, ABC):
 class Program(Parser):
     def parse(self, *args, **kwargs) -> IRNode:
         global_symtab = SymbolTable()
-        prog = self.parse_item(Block, symtab=global_symtab, top_level=True)
+        prog = self.parse_item(Block, symtab=global_symtab)
         self.lxr.expect('period')
         return prog
 
 
 class Block(Parser):
     def parse(self, *args, symtab: SymbolTable,
-              alloct='auto', top_level=False, **kwargs) -> IRNode:
-        if top_level:
+              alloct='auto', function=None, **kwargs) -> IRNode:
+        if function is None:
             local = symtab  # if the block is the global block I need to use the global
             # table
         else:
@@ -105,7 +105,7 @@ class Block(Parser):
             defs.append(func)
 
         stat = self.parse_item(Statement, local)
-        return ir.Block(symtab=local, defs=defs, body=stat, top_level=top_level)
+        return ir.Block(symtab=local, defs=defs, body=stat, function=function)
 
 
 class ConstDef(Parser):
@@ -149,9 +149,10 @@ class FuncDef(Parser):
     def parse(self, *args, symtab: SymbolTable, **kwargs) -> IRNode:
         _, fname = self.lxr.expect('ident')
         self.lxr.expect('semicolon')
-        symtab.append(Symbol(fname, TYPENAMES['function']))
+        fsym = Symbol(fname, TYPENAMES['function'])
+        symtab.append(fsym)
 
-        fbody = self.parse_item(Block, symtab=symtab)
+        fbody = self.parse_item(Block, symtab=symtab, function=fsym)
         self.lxr.expect('semicolon')
         return ir.FunctionDef(symbol=symtab.lookup(fname), body=fbody)
 

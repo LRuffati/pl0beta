@@ -3,6 +3,7 @@ Executed after the lowering phase to associate all variables and their respectiv
 data information
 """
 import src.Codegen.lowered as lwr
+import src.ControlFlow.CodeContainers as ctnrs
 
 
 class SymbolLayout:
@@ -41,5 +42,5 @@ class GlobalSymbolLayout(SymbolLayout):
 
 class DataLayout:
     @staticmethod
-    def perform_program_layout(root: 'lwr.LoweredBlock'):
+    def perform_program_layout(root: 'ctnrs.LoweredBlock'):
         root.perform_data_layout()

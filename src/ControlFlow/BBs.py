@@ -2,6 +2,7 @@ from functools import reduce
 from typing import Optional as Opt
 
 import src.Codegen.lowered as lwr
+import src.ControlFlow.CodeContainers as cntnrs
 from src.IR.symbols import Symbol, TYPENAMES, SymbolTable
 from src.utils.exceptions import CFGException
 
@@ -17,6 +18,7 @@ class BasicBlock:
 
         self.function: Opt[Symbol] = function  # if None then it's part of the global function
         self.symtab: SymbolTable = symtab
+        self.container_block: Opt[cntnrs.LoweredBlock] = None
 
         # v properties for later
         self.kill: Opt[set[Symbol]] = None
@@ -60,7 +62,11 @@ class BasicBlock:
         """
         if self.label_in is None:
             lab = TYPENAMES['label']()
+            lab_stat = lwr.EmptyStat(symtab=self.symtab)
+            lab_stat.set_label(lab)
             self.add_label(lab)
+            self.statements.insert(0, lab_stat)  # if it has no label insert a
+            # empty statement which will add the label during code generation
 
         self.live_in = set()
         self.live_out = set()
@@ -168,6 +174,9 @@ class BasicBlock:
                     s.add(i.target)
         return s
 
+    def bind_to_block(self, block: cntnrs.LoweredBlock):
+        self.container_block = block
+
     def __repr__(self):
         if self.label_in:
             out = []
@@ -178,3 +187,56 @@ class BasicBlock:
 
             return f"BasicBlock: {repr(self.label_in)} -> {' | '.join(out)}"
         return f"BasicBlock_{len(self.statements)}_instrs"
+
+    @staticmethod
+    def iter_bbs(head, instr=False):
+        """
+        :param head: The first basic block
+        :param instr: If true return all the statements in a block,
+        if false just return the basic block
+        :return:
+        """
+        visited = set()
+        queue = [head]
+        while len(queue) > 0:
+            bb: BasicBlock = queue.pop()
+            if instr:
+                for instr in bb.statements:
+                    yield instr
+            else:
+                visited.add(bb)
+                yield bb
+            queue.extend(set(bb.successors()) - visited)
+        raise StopIteration()
+    # TODO: allow inserting instruction/basic blocks within a pre-existing
+    #  basic block
+
+
+class FakeBlock(BasicBlock):
+    def __init__(self, function, symtab, *,
+                 preds: Opt[list[BasicBlock]] = None,
+                 folls: Opt[list[BasicBlock]] = None):
+        super(FakeBlock, self).__init__(function, symtab)
+        self.finalize()
+        if folls is None:
+            folls = []
+        self.folls = folls
+        self.folls_labs = [i.label_in for i in folls]
+
+        if preds is None:
+            preds = []
+        for b in preds:
+            b.add_succs(next=self)
+
+    def get_follower_labels(self) -> set[Symbol]:
+        return set(self.folls_labs)
+
+    def successors(self) -> list['BasicBlock']:
+        return self.folls[:]
+
+    def __repr__(self):
+        if len(self.folls) == 0:
+            return f"{self.label_in} Virtual exit node for {self.function if self.function else 'glob'}"
+        else:
+            return f"{self.label_in}: Entry for {self.function if self.function else 'glob'}" \
+                   f" -> {'|'.join([repr(i.label_in) for i in self.successors()])}"

@@ -1,6 +1,7 @@
 from src.ControlFlow.BBs import BasicBlock
 from src.ControlFlow.CFG import CFG
 import src.Codegen.lowered as lwr
+from src.ControlFlow.CodeContainers import LoweredBlock
 from src.IR.symbols import Symbol
 
 from collections import namedtuple
@@ -56,7 +57,7 @@ class RegisterAllocator:
     return an AllocInfo object
     """
 
-    def __call__(self, cfg: CFG, root: lwr.LoweredBlock) -> AllocInfo:
+    def __call__(self, cfg: CFG, root: LoweredBlock) -> AllocInfo:
         raise NotImplementedError()
 
 
@@ -105,7 +106,7 @@ class LinearScanRegAlloc(RegisterAllocator):
         self.varliveness.sort(key=lambda x: x.defined)
         self.all_vars = list(vars)
 
-    def __call__(self, cfg: CFG, root: lwr.LoweredBlock = None) -> AllocInfo:
+    def __call__(self, cfg: CFG, root: LoweredBlock = None) -> AllocInfo:
         self.compute_liveness_intervarls(cfg)
 
         live: list[VarLiveInfo] = []

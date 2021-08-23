@@ -8,9 +8,10 @@ class Codegen(abc.ABC):
         pass
 
 
-class DataLayout(abc.ABC):
-    @abc.abstractmethod
-    def perform_data_layout(self):
-        pass
+class Lowered(Codegen):
+    def set_label(self, label):
+        raise NotImplementedError()
 
+    def destination(self):
+        raise NotImplementedError()
 

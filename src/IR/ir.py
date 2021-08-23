@@ -2,12 +2,15 @@ import abc
 from abc import ABC
 from typing import Optional as Opt
 
+from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef, LowDefList
 from src.IR.irUtils import *
 from src.IR.symbols import *
 import src.Codegen.lowered as lwr
 from src.utils.exceptions import IRException
 
 from MixedTrees.src.MixedTrees import MixedTree as mxdT
+from src.utils.markers import Lowered
+
 
 class IRNode(mxdT, lower=["children"]):
     """
@@ -16,12 +19,13 @@ class IRNode(mxdT, lower=["children"]):
     then converted into code
     """
 
+    # TODO: remove parents from IR nodes
     def __init__(self, parent: 'IRNode' = None,
                  children: list['IRNode'] = None,
                  symtab: SymbolTable = None):
         self.parent = parent
-        self.lowered: Opt[lwr.LoweredStat] = None #TODO: in the lowering function, add a reference to the
-                                                  # lowered in this variable
+        self.lowered: Opt[Lowered] = None  # TODO: in the lowering function, add a reference to the
+        # lowered in this variable
         self.children = []
         c: IRNode
         if children is None:
@@ -32,7 +36,7 @@ class IRNode(mxdT, lower=["children"]):
         self.symtab = symtab
 
     @abc.abstractmethod
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         """
         This function assumes that all children nodes are
         already lowered and returns the lowered version of the
@@ -49,6 +53,7 @@ class IRNode(mxdT, lower=["children"]):
                 res = low_old(self, *args, **kwargs)
                 self.lowered = res
                 return res
+
             cls.lower = new_low
 
         return super().__init_subclass__(**kwargs)
@@ -59,29 +64,31 @@ class Block(IRNode, lower=['body', 'defs']):
     A block with a local symbol table, references to the global
     symbol table and to the definition list
     """
+
     def __init__(self, parent=None,
                  symtab: SymbolTable = None,
                  defs: 'DefinitionList' = None,
                  body: IRNode = None,
-                 top_level=False):
+                 function=None):
         super(Block, self).__init__(parent, [], symtab)
-        self.top_level = top_level
+        self.function: Opt[Symbol] = function # if none then it's global
         self.symtab = symtab
         self.body = body
         self.defs: DefinitionList = defs
         self.body.parent = self
         self.defs.parent = self
 
-    def lower(self) -> lwr.LoweredBlock:
-        return lwr.LoweredBlock(symtab=self.symtab, top_level=self.top_level,
-                                body=self.body.lowered, defs=self.defs.lowered)
+    def lower(self) -> Lowered:
+        return LoweredBlock(symtab=self.symtab, function=self.function,
+                            body=self.body.lowered, defs=self.defs.lowered)
 
 
 class Placebo(IRNode):
     """
     To be returned when no node was created in the parsing
     """
-    def lower(self) -> lwr.LoweredStat:
+
+    def lower(self) -> Lowered:
         raise IRException("Lowering shouldn't have reached a placebo Node")
 
 
@@ -92,7 +99,7 @@ class Definition(IRNode):
         self.symbol = symbol
 
     @abc.abstractmethod
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         pass
 
 
@@ -102,8 +109,8 @@ class FunctionDef(Definition, lower=['body']):
         self.body = body
         self.body.parent = self
 
-    def lower(self) -> lwr.LoweredDef:
-        return lwr.LoweredDef(body=self.body.lowered, symtab=self.symtab, func=self.symbol)
+    def lower(self) -> LoweredDef:
+        return LoweredDef(body=self.body.lowered, symtab=self.symtab, func=self.symbol)
 
 
 class DefinitionList(IRNode):
@@ -111,8 +118,8 @@ class DefinitionList(IRNode):
         el.parent = self
         self.children.append(el)
 
-    def lower(self) -> lwr.LowDefList:
-        return lwr.LowDefList(children=[i.lowered for i in self.children])
+    def lower(self) -> LowDefList:
+        return LowDefList(children=[i.lowered for i in self.children])
 
 
 # Expressions
@@ -129,6 +136,7 @@ class BinExpr(Expression):
     """
 
     """
+
     def __init__(self, op=None, parent=None, operands=None, symtab=None):
         super(BinExpr, self).__init__(parent, operands, symtab)
         if (len(operands) != 2) or (op is None):
@@ -138,7 +146,7 @@ class BinExpr(Expression):
     def get_operands(self):
         return self.children[:]
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         src_a = self.children[0].lowered.destination()
         src_b = self.children[1].lowered.destination()
         if ('unsigned' in src_a.stype.qual_list) and ('unsigned' in src_b.stype.qual_list):
@@ -166,7 +174,7 @@ class UnExpr(Expression):
             raise IRException("Error in initializing a UnExpr with: ", self.children)
         self.op = op
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         src = self.children[0].lowered.destination()
         dest = new_temporary(self.symtab, src.stype)
         stmt = lwr.UnaryStat(dest=dest, op=self.op, src=src, symtab=self.symtab)
@@ -181,7 +189,7 @@ class CallExpr(Expression):
         if parameters:
             self.children = parameters[:]
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         raise IRException("CallExpr should not be reached when trying"
                           "to lower")
 
@@ -191,12 +199,13 @@ class CallExpr(Expression):
 class Const(IRNode):
     """
     """
+
     def __init__(self, parent=None, value=None, symtab=None, symb=None):
         super(Const, self).__init__(parent, None, symtab)
         self.value = value
         self.symbol = symb
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         if self.symbol is None:
             new = new_temporary(self.symtab, TYPENAMES['int'])
             loadst = lwr.LoadImmStat(dest=new, val=self.value, symtab=self.symtab)
@@ -211,6 +220,7 @@ class ArrayElement(IRNode, lower=['offset']):
     Loads in a temporary register the value pointed at by the
     symbol at the given offset
     """
+
     def __init__(self, parent=None, var=None, offset=None, symtab=None):
         """
         Offset must be a single expression, multi dimensional arrays
@@ -223,7 +233,7 @@ class ArrayElement(IRNode, lower=['offset']):
         self.symbol = var
         self.offset = offset
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         dest = new_temporary(self.symtab, self.symbol.stype.basetype)
         off = self.offset.lowered.destination()
 
@@ -244,11 +254,12 @@ class Var(IRNode):
     """
     Loads in a temporary register the value pointed at by the symbol
     """
+
     def __init__(self, parent=None, var=None, symtab=None):
         super(Var, self).__init__(parent, None, symtab)
         self.symbol = var
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         new = new_temporary(self.symtab, self.symbol.stype)
         loadst = lwr.LoadStat(dest=new, symbol=self.symbol, symtab=self.symtab)
         return loadst
@@ -268,8 +279,8 @@ class Statement(IRNode, ABC):
 
 
 class AssignStat(Statement, lower=['expr', 'offset']):
-    def __init__(self, parent=None, 
-                 target=None, offset=None, 
+    def __init__(self, parent=None,
+                 target=None, offset=None,
                  expression=None, symtab=None):
         super(AssignStat, self).__init__(parent, [], symtab)
         self.symbol: Symbol = target
@@ -284,7 +295,7 @@ class AssignStat(Statement, lower=['expr', 'offset']):
         if self.offset is not None:
             self.offset.parent = self
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         src = self.expr.lowered.destination()
         dst = self.symbol
 
@@ -312,7 +323,7 @@ class CallStat(Statement):
         self.call: CallExpr = call_expr
         self.call.parent = self
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         dest = self.call.symbol
         return lwr.BranchStat(target=dest, symtab=self.symtab, returns=True)
 
@@ -324,7 +335,7 @@ class StatList(Statement):
     def append(self, statement):
         self.children.append(statement)
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         return lwr.StatList(children=[i.lowered for i in self.children], symtab=self.symtab)
 
 
@@ -340,7 +351,7 @@ class IfStat(Statement, lower=['cond', 'then', 'elsep']):
         if self.elsep:
             self.elsep.parent = self
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         exit_lab = TYPENAMES['label']()
         exit_stat = lwr.EmptyStat(symtab=self.symtab)
         exit_stat.set_label(exit_lab)
@@ -382,7 +393,7 @@ class WhileStat(Statement, lower=['cond', 'body']):
         self.cond.parent = self
         self.body.parent = self
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         entry_l = TYPENAMES['label']()
         exit_l = TYPENAMES['label']()
         exit_s = lwr.EmptyStat(symtab=self.symtab)
@@ -406,12 +417,12 @@ class PrintStat(Statement, lower=['expr']):
         super(PrintStat, self).__init__(parent, [], symtab)
         self.expr: IRNode = exp
 
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         ps = lwr.PrintStat(src=self.expr.lowered.destination(), symtab=self.symtab)
         return lwr.StatList(children=[self.expr.lowered, ps], symtab=self.symtab)
 
 
 class ReadStat(Statement):
-    def lower(self) -> lwr.LoweredStat:
+    def lower(self) -> Lowered:
         tmp = new_temporary(self.symtab, TYPENAMES['int'])
         return lwr.ReadStat(dest=tmp, symtab=self.symtab)
