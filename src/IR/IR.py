@@ -2,12 +2,12 @@ import abc
 from abc import ABC
 from typing import Optional as Opt
 
-from src.Codegen.codegenUtils import Lowered
+from src.Codegen.CodegenUtils import Lowered
 from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef, LowDefList
-from src.IR.irUtils import *
-from src.IR.symbols import *
-import src.Codegen.lowered as lwr
-from src.utils.exceptions import IRException
+from src.IR.IRUtils import *
+from src.IR.Symbols import *
+import src.Codegen.Lowered as lwr
+from src.utils.Exceptions import IRException
 
 from MixedTrees.src.MixedTrees import MixedTree as mxdT
 

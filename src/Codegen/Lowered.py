@@ -1,9 +1,9 @@
 from typing import Optional as Opt
 
-from src.Codegen.codegenUtils import Lowered
-from src.utils.exceptions import IRException
-from src.IR.symbols import Symbol, SymbolTable
-from src.ControlFlow.BBs import BasicBlock
+from src.Codegen.CodegenUtils import Lowered
+from src.utils.Exceptions import IRException
+from src.IR.Symbols import Symbol, SymbolTable
+import src.ControlFlow.BBs as BBs
 
 
 class LoweredStat(Lowered):
@@ -185,9 +185,9 @@ class StatList(LoweredStat):
 
         super(StatList, self).__init__(dest=dest)
 
-    def to_bbs(self, symtab: SymbolTable) -> list[BasicBlock]:
+    def to_bbs(self, symtab: SymbolTable) -> list['BBs.BasicBlock']:
         bbs = []
-        bb = BasicBlock(self.function, symtab)
+        bb = BBs.BasicBlock(self.function, symtab)
         for instr in self.children:
             compl, bb = bb.append(instr)
             if compl:

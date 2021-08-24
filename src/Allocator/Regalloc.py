@@ -1,8 +1,8 @@
 from src.ControlFlow.BBs import BasicBlock
 from src.ControlFlow.CFG import CFG
-import src.Codegen.lowered as lwr
+import src.Codegen.Lowered as lwr
 from src.ControlFlow.CodeContainers import LoweredBlock
-from src.IR.symbols import Symbol
+from src.IR.Symbols import Symbol
 
 from collections import namedtuple
 

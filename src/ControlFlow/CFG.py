@@ -2,8 +2,8 @@ from typing import Optional as Opt
 
 from src.ControlFlow.BBs import BasicBlock
 from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef
-from src.IR.symbols import Symbol
-from src.utils.exceptions import CFGException
+from src.IR.Symbols import Symbol
+from src.utils.Exceptions import CFGException
 
 
 class CFG:

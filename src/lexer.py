@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from typing import Optional
 
-from src.utils.exceptions import LexerException
+from src.utils.Exceptions import LexerException
 
 """Simple lexer for PL/0 using generators"""
 

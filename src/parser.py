@@ -2,14 +2,14 @@ import abc
 from abc import ABC
 
 import src.lexer as lexer
-from src.utils.logger import Logged
-from src.utils.exceptions import *
-import src.IR.ir
-from src.IR.ir import IRNode
-from src.IR.symbols import *
-from src.IR.symbols import Symbol
+from src.utils.Logger import Logged
+from src.utils.Exceptions import *
+import src.IR.IR
+from src.IR.IR import IRNode
+from src.IR.Symbols import *
+from src.IR.Symbols import Symbol
 
-ir = src.IR.ir
+ir = src.IR.IR
 
 
 class Parser(Logged, ABC):
@@ -120,7 +120,7 @@ class ConstDef(Parser):
                           int(val))
             if not self.lxr.accept('comma'):
                 break
-        return src.IR.ir.Placebo()
+        return src.IR.IR.Placebo()
 
 
 class VarDef(Parser):
@@ -142,7 +142,7 @@ class VarDef(Parser):
         else:
             symtab.append(Symbol(name, typ, alloct=alloct))
 
-        return src.IR.ir.Placebo()
+        return src.IR.IR.Placebo()
 
 
 class FuncDef(Parser):
@@ -184,7 +184,7 @@ class Assignment(Statement, ArrayUtils):
         self.lxr.expect('becomes')
         expr = self.parse_item(Expression, symtab)
         targ = symtab.lookup(targ)
-        return src.IR.ir.AssignStat(target=targ,
+        return src.IR.IR.AssignStat(target=targ,
                                     offset=offset,
                                     expression=expr,
                                     symtab=symtab)

@@ -1,15 +1,15 @@
 from functools import reduce
 from typing import Optional as Opt
 
-import src.Codegen.lowered as lwr
+import src.Codegen.Lowered as lwr
 import src.ControlFlow.CodeContainers as cntnrs
-from src.IR.symbols import Symbol, TYPENAMES, SymbolTable
-from src.utils.exceptions import CFGException
+from src.IR.Symbols import Symbol, TYPENAMES, SymbolTable
+from src.utils.Exceptions import CFGException
 
 
 class BasicBlock:
     def __init__(self, function, symtab):
-        self.statements: list[lwr.LoweredStat] = []
+        self.statements: list['lwr.LoweredStat'] = []
         self.label_in: Opt[Symbol] = None
         self.next: Opt['BasicBlock'] = None  # the next
         self.next_lab: Opt[Symbol] = None
@@ -174,7 +174,7 @@ class BasicBlock:
                     s.add(i.target)
         return s
 
-    def bind_to_block(self, block: cntnrs.LoweredBlock):
+    def bind_to_block(self, block: 'cntnrs.LoweredBlock'):
         self.container_block = block
 
     def __repr__(self):

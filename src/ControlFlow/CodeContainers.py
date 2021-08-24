@@ -1,11 +1,11 @@
 from typing import Optional as Opt
 
-import src.Codegen.lowered as lwr
+import src.Codegen as Codegen
 import src.ControlFlow.BBs as BBs
-from src.Codegen.codegenUtils import Lowered
+from src.Codegen.CodegenUtils import Lowered
 from src.ControlFlow.DataLayout import DataLayout, GlobalSymbolLayout, LocalSymbolLayout
-from src.IR.symbols import SymbolTable, Symbol
-from src.utils.exceptions import IRException
+from src.IR.Symbols import SymbolTable, Symbol
+from src.utils.Exceptions import IRException
 
 
 class LoweredBlock(Lowered, DataLayout):
@@ -18,7 +18,7 @@ class LoweredBlock(Lowered, DataLayout):
     def __init__(self, *, symtab, function, body, defs):
         self.symtab: SymbolTable = symtab
         self.function: Opt[Symbol] = function  # if None then it's global
-        self.statlist: lwr.StatList = body
+        self.statlist: Codegen.Lowered.StatList = body
         self.defs: LowDefList = defs
         # ^ Info from lowering
 

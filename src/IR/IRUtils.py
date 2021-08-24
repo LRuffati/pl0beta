@@ -1,4 +1,4 @@
-from src.IR.symbols import Symbol
+from src.IR.Symbols import Symbol
 
 tempcount = 0
 
