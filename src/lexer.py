@@ -2,6 +2,7 @@
 from typing import Optional
 
 from src.utils.exceptions import LexerException
+
 """Simple lexer for PL/0 using generators"""
 
 # Tokens can have multiple definitions if needed
@@ -65,7 +66,7 @@ class Lexer:
 
     def check_symbol(self):
         for s, t in self.str_to_token:
-            if self.text[self.pos:self.pos+len(s)].lower() == s:
+            if self.text[self.pos:self.pos + len(s)].lower() == s:
                 self.pos += len(s)
                 return t, s
         return None, None
@@ -99,12 +100,13 @@ class Lexer:
             try:
                 t = self.text[self.pos]
             except Exception:
-                t = 'end of file' # at end of file this will fail because self.pos >= len(self.text)
+                t = 'end of file'  # at end of file this will fail because self.pos >= len(self.text)
                 yield 'illegal', t
                 break
 
     def __iter__(self) -> 'LexerIter':
         return LexerIter(self)
+
 
 class LexerIter():
     def __init__(self, lexer):
@@ -115,10 +117,10 @@ class LexerIter():
         self.val = None
 
         # Buffer values for rollback
-        self.prev_val = None # Updated on every non rollback next
-        self.prev_sym = None # See prev_val
-        self.has_prev = False # Becomes true after a non rollback next,
-                              # is false after a rollback
+        self.prev_val = None  # Updated on every non rollback next
+        self.prev_sym = None  # See prev_val
+        self.has_prev = False  # Becomes true after a non rollback next,
+        # is false after a rollback
         self.rollback = False
 
     def roll_back(self):
@@ -139,7 +141,7 @@ class LexerIter():
         """If the first item is the expected symbol return the symbol/value,
         otherwise rollback and return false"""
         s, v = next(self)
-        if (s==sym) or (s in alts):
+        if (s == sym) or (s in alts):
             self.sym = s
             self.val = v
             return s, v

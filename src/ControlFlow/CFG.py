@@ -1,7 +1,6 @@
 from typing import Optional as Opt
 
 from src.ControlFlow.BBs import BasicBlock
-from src.Codegen.lowered import StatList
 from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef
 from src.IR.symbols import Symbol
 from src.utils.exceptions import CFGException

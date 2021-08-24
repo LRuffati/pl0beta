@@ -15,6 +15,7 @@ class AllocInfo:
     This class holds informations on the variables and their allocations
     to registers. It is passed to the code generation unit
     """
+
     def __init__(self, vartoreg: dict[Symbol, int], numspill: int, nregs: int):
         self.var_to_reg: dict[Symbol, int] = vartoreg
         self.numspill = numspill
@@ -29,15 +30,15 @@ class AllocInfo:
         self.numspill += other_ra.numspill
 
     def spill_room(self):
-        return self.numspill*4
+        return self.numspill * 4
 
     def dematerialize_spilled_var_if_necessary(self, var: Symbol):
-        if self.var_to_reg[var] >= self.nregs -2:
+        if self.var_to_reg[var] >= self.nregs - 2:
             self.var_to_reg[var] = SPILL_FLAG
 
     def materialize_spilled_if_necessary(self, var: Symbol):
         if self.var_to_reg[var] != SPILL_FLAG:
-            if self.var_to_reg[var] >= self.nregs-2:
+            if self.var_to_reg[var] >= self.nregs - 2:
                 return True
             return False
 

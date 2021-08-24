@@ -1,11 +1,10 @@
-from MixedTrees.src import MixedTrees as mxdT
 from functools import reduce
 
-from src.utils.markers import Codegen
 from MixedTrees.src.MixedTrees import MixedTree as mxdT
+from src.Codegen.codegenUtils import Codegen
 
 
-class SymbolTable():
+class SymbolTable:
     def __init__(self, *args, parent=None):
         self.lst = list(args)
         self.par = parent
@@ -23,7 +22,7 @@ class SymbolTable():
                 if direct:
                     return s
                 if self.lvl == 0:
-                    return s # global vars
+                    return s  # global vars
                 else:
                     raise NotImplementedError("Need to implement properly indirect "
                                               "lookup so that the symbol knows it "
@@ -57,7 +56,6 @@ class SymbolTable():
         return syms
 
 
-
 class Type:
     def __init__(self, name, size, basetype, qualifiers=None):
         if qualifiers is None:
@@ -74,33 +72,33 @@ class Type:
     def default_name(self):
         n = ''
         if 'unsigned' in self.qual_list:
-            n+='u'
-        n+= 'int'
-        n+= repr(self.size)
-        n+= '_t'
+            n += 'u'
+        n += 'int'
+        n += repr(self.size)
+        n += '_t'
         return n
 
 
 class LabelType(Type):
     def __init__(self):
-        super().__init__('label',0,'Label',[])
+        super().__init__('label', 0, 'Label', [])
         self.ids = 0
 
     def __call__(self, target=None):
         self.ids += 1
-        return Symbol(name='label_'+repr(self.ids), stype=self, value=target)
+        return Symbol(name='label_' + repr(self.ids), stype=self, value=target)
 
 
 class FunctionType(Type):
     def __init__(self):
-        super().__init__('function',0,'Function',[])
+        super().__init__('function', 0, 'Function', [])
 
 
 class ArrayType(Type):
     def __init__(self, name, dims, basetype: Type):
         self.dims = dims
         super().__init__(name,
-                         reduce(lambda a, b: a*b, dims)*basetype.size,
+                         reduce(lambda a, b: a * b, dims) * basetype.size,
                          basetype)
 
 
@@ -125,6 +123,7 @@ TYPENAMES = {
 
 class Symbol(mxdT, Codegen):
     """Mixed tree as a base class is necessary since it's a node of a tree"""
+
     def __init__(self, name, stype, value=None, alloct='auto'):
         self.name = name
         self.stype: Type = stype
@@ -140,12 +139,12 @@ class Symbol(mxdT, Codegen):
         if type(self.value) is str:
             val = self.value
 
-        base = self.alloct + ' '+ self.stype.name + ' ' + \
+        base = self.alloct + ' ' + self.stype.name + ' ' + \
                self.name + val
 
         if self.allocinfo is not None:
             base += "; " + repr(self.allocinfo)
         return base
 
-    def emit_code(self):
-        pass
+    # TODO: the codegen for a local/global/inherited symbol will have
+    #       to be handled differently

@@ -2,10 +2,10 @@ from typing import Optional as Opt
 
 import src.Codegen.lowered as lwr
 import src.ControlFlow.BBs as BBs
+from src.Codegen.codegenUtils import Lowered
 from src.ControlFlow.DataLayout import DataLayout, GlobalSymbolLayout, LocalSymbolLayout
 from src.IR.symbols import SymbolTable, Symbol
 from src.utils.exceptions import IRException
-from src.utils.markers import Lowered
 
 
 class LoweredBlock(Lowered, DataLayout):
@@ -63,7 +63,7 @@ class LoweredBlock(Lowered, DataLayout):
         return
 
     def to_bbs(self) -> list['BBs.BasicBlock']:
-        lst = self.statlist.to_bbs()
+        lst = self.statlist.to_bbs(symtab=self.symtab)
 
         exit_bbs = []
         entry_bbs = []
@@ -102,10 +102,9 @@ class LoweredDef(Lowered, DataLayout):
     def destination(self):
         raise IRException("Trying to get destination of function definition")
 
-    def __init__(self, *, body, symtab, func: Symbol):
+    def __init__(self, *, body, func: Symbol):
         super(LoweredDef, self).__init__()
         self.body: LoweredBlock = body
-        self.symtab: SymbolTable = symtab
         self.function: Symbol = func
 
     def perform_data_layout(self):

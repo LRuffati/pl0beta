@@ -62,7 +62,7 @@ class BasicBlock:
         """
         if self.label_in is None:
             lab = TYPENAMES['label']()
-            lab_stat = lwr.EmptyStat(symtab=self.symtab)
+            lab_stat = lwr.EmptyStat()
             lab_stat.set_label(lab)
             self.add_label(lab)
             self.statements.insert(0, lab_stat)  # if it has no label insert a

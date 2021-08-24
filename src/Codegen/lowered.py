@@ -1,9 +1,8 @@
-import abc
 from typing import Optional as Opt
 
+from src.Codegen.codegenUtils import Lowered
 from src.utils.exceptions import IRException
-from src.utils.markers import Codegen, Lowered
-from src.IR.symbols import Symbol
+from src.IR.symbols import Symbol, SymbolTable
 from src.ControlFlow.BBs import BasicBlock
 
 
@@ -42,10 +41,9 @@ class LoweredStat(Lowered):
 
 
 class PrintStat(LoweredStat):
-    def __init__(self, *, src, symtab):
+    def __init__(self, *, src):
         super().__init__()
         self.src = src
-        self.symtab = symtab
         self.use_set = {src}
 
     def __repr__(self):
@@ -53,9 +51,8 @@ class PrintStat(LoweredStat):
 
 
 class ReadStat(LoweredStat):
-    def __init__(self, *, dest, symtab):
+    def __init__(self, *, dest):
         super().__init__(dest=dest)
-        self.symtab = symtab
         self.def_set = {dest}
 
     def __repr__(self):
@@ -63,9 +60,8 @@ class ReadStat(LoweredStat):
 
 
 class BranchStat(LoweredStat):
-    def __init__(self, *, target, symtab, returns=False, condition=None, negcond=False):
+    def __init__(self, *, target, returns=False, condition=None, negcond=False):
         self.target = target
-        self.symtab = symtab
         self.rets = returns
         self.condition = condition
         self.negcond = negcond
@@ -84,19 +80,17 @@ class BranchStat(LoweredStat):
 
 
 class EmptyStat(LoweredStat):
-    def __init__(self, *, symtab):
+    def __init__(self):
         super().__init__()
-        self.symtab = symtab
 
     def __repr__(self):
         return f"{self.label}:"
 
 
 class LoadPtrToSymb(LoweredStat):
-    def __init__(self, *, dest, symbol, symtab):
+    def __init__(self, *, dest, symbol):
         super().__init__(dest=dest)
         self.symbol = symbol
-        self.symtab = symtab
         self.use_set = {self.symbol}
         self.def_set = {self.dest}
 
@@ -105,10 +99,9 @@ class LoadPtrToSymb(LoweredStat):
 
 
 class StoreStat(LoweredStat):
-    def __init__(self, *, dest, symbol, symtab):
+    def __init__(self, *, dest, symbol):
         super().__init__(dest=dest)
         self.symbol = symbol
-        self.symtab = symtab
         if self.dest.alloct == 'reg':
             self.use_set = {symbol, dest}
         else:
@@ -123,11 +116,9 @@ class StoreStat(LoweredStat):
 
 
 class LoadStat(LoweredStat):
-    def __init__(self, *, dest, symbol, symtab):
+    def __init__(self, *, dest, symbol):
         super().__init__(dest=dest)
         self.symbol = symbol
-        self.symtab = symtab
-        # TODO: add def/use sets
         if self.dest.alloct != 'reg':
             raise IRException("Load not to a register")
         self.use_set = {self.symbol}
@@ -138,10 +129,9 @@ class LoadStat(LoweredStat):
 
 
 class LoadImmStat(LoweredStat):
-    def __init__(self, *, dest, val, symtab):
+    def __init__(self, *, dest, val):
         super().__init__(dest=dest)
         self.val = val
-        self.symtab = symtab
         self.def_set = {self.dest}
 
     def __repr__(self):
@@ -149,12 +139,11 @@ class LoadImmStat(LoweredStat):
 
 
 class BinStat(LoweredStat):
-    def __init__(self, *, dest, op, srca, srcb, symtab):
+    def __init__(self, *, dest, op, srca, srcb):
         super(BinStat, self).__init__(dest=dest)
         self.op = op
         self.srca = srca
         self.srcb = srcb
-        self.symtab = symtab
         self.def_set = {self.dest}
         self.use_set = {self.srcb, self.srca}
 
@@ -163,11 +152,10 @@ class BinStat(LoweredStat):
 
 
 class UnaryStat(LoweredStat):
-    def __init__(self, *, dest, op, src, symtab):
+    def __init__(self, *, dest, op, src):
         super(UnaryStat, self).__init__(dest=dest)
         self.op = op
         self.src = src
-        self.symtab = symtab
         self.def_set = {self.dest}
         self.use_set = {self.src}
 
@@ -176,7 +164,7 @@ class UnaryStat(LoweredStat):
 
 
 class StatList(LoweredStat):
-    def __init__(self, *, children=None, symtab=None):
+    def __init__(self, *, children=None):
         self.children = []
         dest = None
         self.function: Opt[Symbol] = None  # if function is None after the full
@@ -188,7 +176,7 @@ class StatList(LoweredStat):
             dest = i.destination()
             if isinstance(i, StatList):
                 if lab := i.get_label():
-                    labSt = EmptyStat(symtab=symtab)
+                    labSt = EmptyStat()
                     labSt.set_label(lab)
                     self.children.append(labSt)
                 self.children.extend(i.children)
@@ -196,11 +184,10 @@ class StatList(LoweredStat):
                 self.children.append(i)
 
         super(StatList, self).__init__(dest=dest)
-        self.symtab = symtab
 
-    def to_bbs(self) -> list[BasicBlock]:
+    def to_bbs(self, symtab: SymbolTable) -> list[BasicBlock]:
         bbs = []
-        bb = BasicBlock(self.function, self.symtab)
+        bb = BasicBlock(self.function, symtab)
         for instr in self.children:
             compl, bb = bb.append(instr)
             if compl:
@@ -216,7 +203,7 @@ class StatList(LoweredStat):
         return bbs
 
     def set_label(self, label):
-        labSt = EmptyStat(symtab=self.symtab)
+        labSt = EmptyStat()
         labSt.set_label(label)
         self.children.insert(0, labSt)
 

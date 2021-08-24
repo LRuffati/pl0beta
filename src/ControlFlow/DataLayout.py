@@ -2,7 +2,6 @@
 Executed after the lowering phase to associate all variables and their respective
 data information
 """
-import src.Codegen.lowered as lwr
 import src.ControlFlow.CodeContainers as ctnrs
 
 
