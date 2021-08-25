@@ -1,2 +1,3 @@
-from . import IR, IRUtils, Symbols
-__all__ = [IR, IRUtils, Symbols]
+from . import IR, IRUtils
+
+__all__ = [IR, IRUtils]

@@ -1,7 +1,6 @@
 from functools import reduce
 
-from MixedTrees.src.MixedTrees import MixedTree as mxdT
-import src.Codegen.CodegenUtils as cdgenUts
+from MixedTrees.src.MixedTrees import MixedTree
 
 
 class SymbolTable:
@@ -121,7 +120,7 @@ TYPENAMES = {
 }
 
 
-class Symbol(mxdT, cdgenUts.Codegen):
+class Symbol(MixedTree, Codegen):
     """Mixed tree as a base class is necessary since it's a node of a tree"""
 
     def __init__(self, name, stype, value=None, alloct='auto'):

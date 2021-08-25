@@ -1,9 +1,3 @@
-from src.ControlFlow.BBs import BasicBlock
-from src.ControlFlow.CFG import CFG
-import src.Codegen.Lowered as lwr
-from src.ControlFlow.CodeContainers import LoweredBlock
-from src.IR.Symbols import Symbol
-
 from collections import namedtuple
 
 VarLiveInfo = namedtuple("VarLiveInfo", ["var", "defined", "kill", "interv"])
@@ -16,8 +10,8 @@ class AllocInfo:
     to registers. It is passed to the code generation unit
     """
 
-    def __init__(self, vartoreg: dict[Symbol, int], numspill: int, nregs: int):
-        self.var_to_reg: dict[Symbol, int] = vartoreg
+    def __init__(self, vartoreg: dict['Symbol', int], numspill: int, nregs: int):
+        self.var_to_reg: dict['Symbol', int] = vartoreg
         self.numspill = numspill
         self.nregs = nregs
 
@@ -32,11 +26,11 @@ class AllocInfo:
     def spill_room(self):
         return self.numspill * 4
 
-    def dematerialize_spilled_var_if_necessary(self, var: Symbol):
+    def dematerialize_spilled_var_if_necessary(self, var: 'Symbol'):
         if self.var_to_reg[var] >= self.nregs - 2:
             self.var_to_reg[var] = SPILL_FLAG
 
-    def materialize_spilled_if_necessary(self, var: Symbol):
+    def materialize_spilled_if_necessary(self, var: 'Symbol'):
         if self.var_to_reg[var] != SPILL_FLAG:
             if self.var_to_reg[var] >= self.nregs - 2:
                 return True
@@ -58,7 +52,7 @@ class RegisterAllocator:
     return an AllocInfo object
     """
 
-    def __call__(self, cfg: CFG, root: LoweredBlock) -> AllocInfo:
+    def __call__(self, cfg: 'CFG', root: 'LoweredBlock') -> 'AllocInfo':
         raise NotImplementedError()
 
 
@@ -77,15 +71,15 @@ class LinearScanRegAlloc(RegisterAllocator):
         self.all_vars = []
         self.var_to_reg = {}
 
-    def compute_liveness_intervarls(self, cfg: CFG):
+    def compute_liveness_intervarls(self, cfg: 'CFG'):
         inst_index = 0
         min_gen = {}
         max_use = {}
         vars = set()
 
-        bb: BasicBlock
+        bb: 'BasicBlock'
         for bb in cfg:
-            inst: lwr.LoweredStat
+            inst: 'LoweredStat'
             for inst in bb.statements:
                 kill = LinearScanRegAlloc.remove_non_regs(inst.get_defined())
                 used = LinearScanRegAlloc.remove_non_regs(inst.get_used())
@@ -107,7 +101,7 @@ class LinearScanRegAlloc(RegisterAllocator):
         self.varliveness.sort(key=lambda x: x.defined)
         self.all_vars = list(vars)
 
-    def __call__(self, cfg: CFG, root: LoweredBlock = None) -> AllocInfo:
+    def __call__(self, cfg: 'CFG', root: 'LoweredBlock' = None) -> AllocInfo:
         self.compute_liveness_intervarls(cfg)
 
         live: list[VarLiveInfo] = []
@@ -145,5 +139,5 @@ class LinearScanRegAlloc(RegisterAllocator):
         return AllocInfo(self.var_to_reg, numspill, self.nreg)
 
     @staticmethod
-    def remove_non_regs(varset: set[Symbol]):
+    def remove_non_regs(varset: set['Symbol']):
         return {var for var in varset if var.alloct == 'reg'}

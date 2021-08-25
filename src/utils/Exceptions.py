@@ -12,3 +12,7 @@ class IRException(Exception):
 
 class CFGException(Exception):
     pass
+
+
+class CodegenException(Exception):
+    pass

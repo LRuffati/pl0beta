@@ -1,17 +1,12 @@
 from typing import Optional as Opt
 
-from src.ControlFlow.BBs import BasicBlock
-from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef
-from src.IR.Symbols import Symbol
-from src.utils.Exceptions import CFGException
-
 
 class CFG:
-    def __init__(self, program: LoweredBlock):
+    def __init__(self, program: 'LoweredBlock'):
         queue = [program]
         glob_stat_lst = None
-        self.global_block: Opt[LoweredBlock] = None
-        self.functions: dict[Symbol, LoweredBlock] = {}
+        self.global_block: Opt['LoweredBlock'] = None
+        self.functions: dict['Symbol', 'LoweredBlock'] = {}
 
         while True:
             try:
@@ -21,7 +16,7 @@ class CFG:
 
             if isinstance(el, LoweredBlock):
                 for i in el.defs.lst:
-                    i: LoweredDef
+                    i: 'LoweredDef'
                     queue.append(i)
                 _ = el.to_bbs()
                 if el.function is None:
@@ -30,10 +25,10 @@ class CFG:
                 self.functions[el.function] = el.body
                 queue.append(el.body)
 
-        blocks_labs: set[Symbol] = set()
-        follows_labs: set[Symbol] = set()
+        blocks_labs: set['Symbol'] = set()
+        follows_labs: set['Symbol'] = set()
 
-        bb: BasicBlock
+        bb: 'BasicBlock'
         for bb in self:
             blocks_labs.add(bb.label_in)
             follows_labs |= bb.get_follower_labels()
@@ -44,8 +39,8 @@ class CFG:
 
         self.heads_labels = blocks_labs - follows_labs
 
-    def find_by_lab(self, label: Symbol) -> BasicBlock:
-        bb: BasicBlock
+    def find_by_lab(self, label: 'Symbol') -> 'BasicBlock':
+        bb: 'BasicBlock'
         for bb in self:
             if label == bb.label_in:
                 return bb
@@ -54,7 +49,7 @@ class CFG:
     def get_heads(self):
         return self.heads_labels.copy()
 
-    def find_pred(self, label: Symbol) -> set[BasicBlock]:
+    def find_pred(self, label: 'Symbol') -> set['BasicBlock']:
         """
         Returns a set of basic blocks such that for each of them
         label is in their `.get_followers_labels`
@@ -62,14 +57,14 @@ class CFG:
         :return:
         """
         s = set()
-        i: BasicBlock
+        i: 'BasicBlock'
         for i in self:
             if label in i.get_follower_labels():
                 s.add(i)
         return s
 
     def liveness(self):
-        bb: BasicBlock
+        bb: 'BasicBlock'
         while any(map(lambda bb: bb.liveness_iter(), self)):
             pass
 
@@ -81,9 +76,9 @@ class CFG:
 
 class CFGIter:
     def __init__(self, cfg: CFG):
-        self.queue: list[BasicBlock] = []
+        self.queue: list['BasicBlock'] = []
         for _, b in cfg.functions.items():
-            b: LoweredBlock
+            b: 'LoweredBlock'
             self.queue.append(b.entry_bb)
         self.queue.append(cfg.global_block.entry_bb)
         self.visited = set()

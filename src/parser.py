@@ -6,8 +6,7 @@ from src.utils.Logger import Logged
 from src.utils.Exceptions import *
 import src.IR.IR
 from src.IR.IR import IRNode
-from src.IR.Symbols import *
-from src.IR.Symbols import Symbol
+from src.Symbols import Symbol
 
 ir = src.IR.IR
 

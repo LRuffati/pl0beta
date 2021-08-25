@@ -1,12 +1,5 @@
 from typing import Optional as Opt
 
-import src.Codegen as Codegen
-import src.ControlFlow.BBs as BBs
-from src.Codegen.CodegenUtils import Lowered
-from src.ControlFlow.DataLayout import DataLayout, GlobalSymbolLayout, LocalSymbolLayout
-from src.IR.Symbols import SymbolTable, Symbol
-from src.utils.Exceptions import IRException
-
 
 class LoweredBlock(Lowered, DataLayout):
     def set_label(self, label):
@@ -16,17 +9,17 @@ class LoweredBlock(Lowered, DataLayout):
         raise IRException("Trying to get destination register of a block")
 
     def __init__(self, *, symtab, function, body, defs):
-        self.symtab: SymbolTable = symtab
-        self.function: Opt[Symbol] = function  # if None then it's global
-        self.statlist: Codegen.Lowered.StatList = body
-        self.defs: LowDefList = defs
+        self.symtab: 'SymbolTable' = symtab
+        self.function: Opt['Symbol'] = function  # if None then it's global
+        self.statlist: 'StatList' = body
+        self.defs: 'LowDefList' = defs
         # ^ Info from lowering
 
         self.statlist.bind_to_func(self.function)
         # ^ Actions
 
-        self.entry_bb: Opt[BBs.FakeBlock] = None
-        self.exit_bb: Opt[BBs.FakeBlock] = None
+        self.entry_bb: Opt['FakeBlock'] = None
+        self.exit_bb: Opt['FakeBlock'] = None
 
     def perform_data_layout(self):
         """
@@ -39,7 +32,7 @@ class LoweredBlock(Lowered, DataLayout):
         if self.function is None:
             prefix = "_g_"
 
-            var: Symbol
+            var: 'Symbol'
             for var in self.symtab:
                 if var.stype.size == 0:
                     continue
@@ -62,7 +55,7 @@ class LoweredBlock(Lowered, DataLayout):
             i.perform_data_layout()
         return
 
-    def to_bbs(self) -> list['BBs.BasicBlock']:
+    def to_bbs(self) -> list['BasicBlock']:
         lst = self.statlist.to_bbs(symtab=self.symtab)
 
         exit_bbs = []
@@ -83,10 +76,10 @@ class LoweredBlock(Lowered, DataLayout):
                 entry_bbs.append(b)
             else:
                 bb_succ.discard(b.label_in)
-        self.entry_bb = BBs.FakeBlock(self.function, self.symtab, folls=entry_bbs)
+        self.entry_bb = FakeBlock(self.function, self.symtab, folls=entry_bbs)
         self.entry_bb.bind_to_block(self)
 
-        self.exit_bb = BBs.FakeBlock(self.function, self.symtab, preds=exit_bbs)
+        self.exit_bb = FakeBlock(self.function, self.symtab, preds=exit_bbs)
         self.exit_bb.bind_to_block(self)
 
         self.statlist = None  # from now on only use basic blocks as a way to access
@@ -94,8 +87,8 @@ class LoweredBlock(Lowered, DataLayout):
 
         return [self.entry_bb] + lst + [self.exit_bb]
 
-    def prepare_layout(self, layout: Opt[StackLayout],
-                       symtab: 'src.IR.Symbols.SymbolTable') -> StackLayout:
+    def prepare_layout(self, layout: Opt['StackLayout'],
+                       symtab: 'SymbolTable') -> 'StackLayout':
         """
         Receives the layout of the parent, turns it into a frozen layout,
         creates a new layout and populates it by iterating over the instructions
@@ -129,28 +122,24 @@ class LoweredBlock(Lowered, DataLayout):
         new.add_section(StackSection('regsave'))
         new.add_section(StackSection('args_out'))
 
-        for instr in BBs.BasicBlock.iter_bbs(self.entry_bb, instr=True):
-            instr: src.Codegen.Lowered.LoweredStat
+        for instr in BasicBlock.iter_bbs(self.entry_bb, instr=True):
+            instr: 'LoweredStat'
             new = instr.prepare_layout(new, self.symtab)
-        s: src.IR.Symbols.Symbol
+        s: 'Symbol'
         return new
 
 
-
-
-
-
-class LoweredDef(src.Codegen.CodegenUtils.Lowered, DataLayout):
+class LoweredDef(Lowered, DataLayout):
     def set_label(self, label):
         raise IRException("Trying to set label of definition")
 
     def destination(self):
         raise IRException("Trying to get destination of function definition")
 
-    def __init__(self, *, body, func: Symbol):
+    def __init__(self, *, body, func: 'Symbol'):
         super(LoweredDef, self).__init__()
         self.body: LoweredBlock = body
-        self.function: Symbol = func
+        self.function: 'Symbol' = func
 
     def perform_data_layout(self):
         self.body.perform_data_layout()

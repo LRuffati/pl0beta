@@ -1,5 +1,3 @@
-from src.IR.Symbols import Symbol
-
 tempcount = 0
 
 

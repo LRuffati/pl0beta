@@ -1,14 +1,12 @@
 import abc
 
-from src.Codegen.FrameUtils import StackLayout
-import src.IR as IR
 
 class Codegen(abc.ABC):
 
     # TODO: @abc.abstractmethod
     def emit_code(self,
-                  layout: StackLayout = None,
-                  symtab: 'IR.Symbols.SymbolTable' = None) -> 'Code':
+                  layout: 'StackLayout' = None,
+                  symtab: 'SymbolTable' = None) -> 'Code':
         pass
 
 

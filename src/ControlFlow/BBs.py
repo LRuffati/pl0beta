@@ -1,35 +1,30 @@
 from functools import reduce
 from typing import Optional as Opt
 
-import src.Codegen.Lowered as lwr
-import src.ControlFlow.CodeContainers as cntnrs
-from src.IR.Symbols import Symbol, TYPENAMES, SymbolTable
-from src.utils.Exceptions import CFGException
-
 
 class BasicBlock:
     def __init__(self, function, symtab):
-        self.statements: list['lwr.LoweredStat'] = []
-        self.label_in: Opt[Symbol] = None
+        self.statements: list['LoweredStat'] = []
+        self.label_in: Opt['Symbol'] = None
         self.next: Opt['BasicBlock'] = None  # the next
-        self.next_lab: Opt[Symbol] = None
+        self.next_lab: Opt['Symbol'] = None
         self.target: Opt['BasicBlock'] = None  # the target of a branch instruction
-        self.target_lab: Opt[Symbol] = None
+        self.target_lab: Opt['Symbol'] = None
 
-        self.function: Opt[Symbol] = function  # if None then it's part of the global function
-        self.symtab: SymbolTable = symtab
-        self.container_block: Opt[cntnrs.LoweredBlock] = None
+        self.function: Opt['Symbol'] = function  # if None then it's part of the global function
+        self.symtab: 'SymbolTable' = symtab
+        self.container_block: Opt['LoweredBlock'] = None
 
         # v properties for later
-        self.kill: Opt[set[Symbol]] = None
-        self.gen: Opt[set[Symbol]] = None
+        self.kill: Opt[set['Symbol']] = None
+        self.gen: Opt[set['Symbol']] = None
 
-        self.live_in: Opt[set[Symbol]] = None
-        self.live_out: Opt[set[Symbol]] = None
+        self.live_in: Opt[set['Symbol']] = None
+        self.live_out: Opt[set['Symbol']] = None
 
         self.total_vars_used: Opt[int] = None
 
-    def append(self, instr: 'lwr.LoweredStat') -> tuple[Opt['BasicBlock'], 'BasicBlock']:
+    def append(self, instr: 'LoweredStat') -> tuple[Opt['BasicBlock'], 'BasicBlock']:
         """
         :param instr:
         :return: a tuple whose first element is a completed BB (if the instruction
@@ -48,7 +43,7 @@ class BasicBlock:
 
         self.statements.append(instr)
 
-        if isinstance(instr, lwr.BranchStat) and not instr.rets:
+        if isinstance(instr, BranchStat) and not instr.rets:
             self.finalize()
             self.target_lab = instr.target
             new = BasicBlock(self.function, self.symtab)
@@ -62,7 +57,7 @@ class BasicBlock:
         """
         if self.label_in is None:
             lab = TYPENAMES['label']()
-            lab_stat = lwr.EmptyStat()
+            lab_stat = EmptyStat()
             lab_stat.set_label(lab)
             self.add_label(lab)
             self.statements.insert(0, lab_stat)  # if it has no label insert a
@@ -74,7 +69,7 @@ class BasicBlock:
         self.kill = set()
         self.gen = set()
 
-        self.statements: list[lwr.LoweredStat]
+        self.statements: list['LoweredStat']
         for i in self.statements:
             used = i.get_used()
             defined = i.get_defined()
@@ -84,7 +79,7 @@ class BasicBlock:
 
         self.total_vars_used = len(self.gen | self.kill)
 
-    def add_label(self, label: Symbol):
+    def add_label(self, label: 'Symbol'):
         if self.label_in:
             raise CFGException("Adding label to already labeled block")
         self.label_in = label
@@ -110,7 +105,7 @@ class BasicBlock:
             l.append(self.target)
         return l
 
-    def get_follower_labels(self) -> set[Symbol]:
+    def get_follower_labels(self) -> set['Symbol']:
         s = set()
         if self.target_lab:
             s.add(self.target_lab)
@@ -145,7 +140,7 @@ class BasicBlock:
         """
         currently_live = self.live_out
 
-        i: lwr.LoweredStat
+        i: 'LoweredStat'
         for i in reversed(self.statements):
             currently_live -= i.get_defined()
             currently_live |= i.get_used()
@@ -161,20 +156,20 @@ class BasicBlock:
 
     def remove_useless_next(self):
         last_instr = self.statements[-1]
-        if isinstance(last_instr, lwr.BranchStat):
+        if isinstance(last_instr, BranchStat):
             if last_instr.condition is None:
                 self.next = None
                 self.next_lab = None
 
-    def func_calls(self) -> set[Symbol]:
+    def func_calls(self) -> set['Symbol']:
         s = set()
         for i in self.statements:
-            if isinstance(i, lwr.BranchStat):
+            if isinstance(i, BranchStat):
                 if i.rets:
                     s.add(i.target)
         return s
 
-    def bind_to_block(self, block: 'cntnrs.LoweredBlock'):
+    def bind_to_block(self, block: 'LoweredBlock'):
         self.container_block = block
 
     def __repr__(self):
@@ -228,7 +223,7 @@ class FakeBlock(BasicBlock):
         for b in preds:
             b.add_succs(next=self)
 
-    def get_follower_labels(self) -> set[Symbol]:
+    def get_follower_labels(self) -> set['Symbol']:
         return set(self.folls_labs)
 
     def successors(self) -> list['BasicBlock']:

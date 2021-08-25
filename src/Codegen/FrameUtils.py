@@ -1,8 +1,5 @@
 from typing import Optional as Opt
 
-import src
-from src.utils.Exceptions import CodegenException
-
 
 class StackLayout:
     """
@@ -75,9 +72,9 @@ class StackSection:
         self.size = size
         self.vis = visibility
         self.max_size = 0
-        self.symbols: dict[src.IR.Symbols.Symbol, int] = {}
+        self.symbols: dict['Symbol', int] = {}
 
-    def grow(self, *, words: int = None, symb: 'src.IR.Symbols.Symbol' = None) -> bool:
+    def grow(self, *, words: int = None, symb: 'Symbol' = None) -> bool:
         """
         Grow the size by the given number of words (1 word = 8 bytes)
         or by adding the given Symbol
@@ -98,7 +95,7 @@ class StackSection:
         self.size += size
         return True
 
-    def shrink(self, *, words: int = None, symb: 'src.IR.Symbols.Symbol' = None):
+    def shrink(self, *, words: int = None, symb: 'Symbol' = None):
         """
         Decrease the size
         :param words:
@@ -114,7 +111,7 @@ class StackSection:
         else:
             self.size -= words
 
-    def get_offset(self, symb: 'src.IR.Symbols.Symbol'):
+    def get_offset(self, symb: 'Symbol'):
         if symb not in self.symbols:
             raise CodegenException("Symbol not in section")
         return self.symbols[symb]

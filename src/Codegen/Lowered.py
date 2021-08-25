@@ -1,10 +1,5 @@
 from typing import Optional as Opt
 
-from src.Codegen.CodegenUtils import Lowered
-from src.utils.Exceptions import IRException
-from src.IR.Symbols import Symbol, SymbolTable
-import src.ControlFlow.BBs as BBs
-
 
 class LoweredStat(Lowered):
     """
@@ -23,17 +18,17 @@ class LoweredStat(Lowered):
     def set_label(self, label):
         self.label = label
 
-    def get_label(self) -> Opt[Symbol]:
+    def get_label(self) -> Opt['Symbol']:
         return self.label
 
-    def get_used(self) -> set[Symbol]:
+    def get_used(self) -> set['Symbol']:
         try:
             s = self.use_set.copy()
             return s
         except AttributeError:
             return set()
 
-    def get_defined(self) -> set[Symbol]:
+    def get_defined(self) -> set['Symbol']:
         try:
             return self.def_set.copy()
         except AttributeError:
@@ -167,7 +162,7 @@ class StatList(LoweredStat):
     def __init__(self, *, children=None):
         self.children = []
         dest = None
-        self.function: Opt[Symbol] = None  # if function is None after the full
+        self.function: Opt['Symbol'] = None  # if function is None after the full
         # tree has been lowered then it is the
         # global function
 
@@ -185,9 +180,9 @@ class StatList(LoweredStat):
 
         super(StatList, self).__init__(dest=dest)
 
-    def to_bbs(self, symtab: SymbolTable) -> list['BBs.BasicBlock']:
+    def to_bbs(self, symtab: 'SymbolTable') -> list['BasicBlock']:
         bbs = []
-        bb = BBs.BasicBlock(self.function, symtab)
+        bb = BasicBlock(self.function, symtab)
         for instr in self.children:
             compl, bb = bb.append(instr)
             if compl:
@@ -207,16 +202,16 @@ class StatList(LoweredStat):
         labSt.set_label(label)
         self.children.insert(0, labSt)
 
-    def get_defined(self) -> set[Symbol]:
+    def get_defined(self) -> set['Symbol']:
         return set()
 
-    def get_used(self) -> set[Symbol]:
+    def get_used(self) -> set['Symbol']:
         s = set()
         for ins in self.children:
             s.update(ins.get_used())
         return s
 
-    def bind_to_func(self, function: Symbol):
+    def bind_to_func(self, function: 'Symbol'):
         self.function = function
 
     def __repr__(self):

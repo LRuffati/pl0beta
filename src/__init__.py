@@ -1,2 +1,2 @@
-from . import IR, Codegen, Allocator, ControlFlow, utils
-__all__ = [IR, Codegen, Allocator, ControlFlow, utils]
+from . import IR, Codegen, Allocator, ControlFlow, utils, Symbols
+__all__ = [IR, Codegen, Allocator, ControlFlow, utils, Symbols]
