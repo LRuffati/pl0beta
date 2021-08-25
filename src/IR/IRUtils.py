@@ -1,3 +1,5 @@
+from src.Symbols.Symbols import Symbol
+
 tempcount = 0
 
 

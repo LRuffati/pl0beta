@@ -1,5 +1,7 @@
 from typing import Optional as Opt
 
+from src.utils.Exceptions import CodegenException
+
 
 class StackLayout:
     """

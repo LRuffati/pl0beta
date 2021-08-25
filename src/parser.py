@@ -1,12 +1,13 @@
 import abc
 from abc import ABC
+from functools import reduce
 
 import src.lexer as lexer
 from src.utils.Logger import Logged
 from src.utils.Exceptions import *
 import src.IR.IR
 from src.IR.IR import IRNode
-from src.Symbols import Symbol
+from src.Symbols.Symbols import Symbol, SymbolTable, ArrayType, TYPENAMES
 
 ir = src.IR.IR
 

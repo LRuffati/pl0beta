@@ -40,5 +40,5 @@ class GlobalSymbolLayout(SymbolLayout):
 
 class DataLayout:
     @staticmethod
-    def perform_program_layout(root: 'ctnrs.LoweredBlock'):
+    def perform_program_layout(root: 'LoweredBlock'):
         root.perform_data_layout()

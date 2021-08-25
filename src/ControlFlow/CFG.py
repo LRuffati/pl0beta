@@ -1,5 +1,8 @@
 from typing import Optional as Opt
 
+from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef
+from src.utils.Exceptions import CFGException
+
 
 class CFG:
     def __init__(self, program: 'LoweredBlock'):

@@ -1,5 +1,9 @@
 from typing import Optional as Opt
 
+import src
+from src.utils.Exceptions import IRException
+from src.utils.markers import Lowered
+
 
 class LoweredStat(Lowered):
     """
@@ -182,7 +186,7 @@ class StatList(LoweredStat):
 
     def to_bbs(self, symtab: 'SymbolTable') -> list['BasicBlock']:
         bbs = []
-        bb = BasicBlock(self.function, symtab)
+        bb = src.ControlFlow.BBs.BasicBlock(self.function, symtab)
         for instr in self.children:
             compl, bb = bb.append(instr)
             if compl:
