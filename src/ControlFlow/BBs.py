@@ -1,7 +1,7 @@
 from functools import reduce
 from typing import Optional as Opt
 
-import src.Symbols.Symbols
+import src
 from src.Codegen.Lowered import EmptyStat, BranchStat
 from src.Symbols.Symbols import TYPENAMES
 from src.utils.Exceptions import CFGException
@@ -242,7 +242,8 @@ class FakeBlock(BasicBlock):
                    f" -> {'|'.join([repr(i.label_in) for i in self.successors()])}"
 
 
-Symbol = src.Symbols.Symbols.Symbol
-LoweredStat = src.Codegen.Lowered.LoweredStat
-SymbolTable = src.Symbols.Symbols.SymbolTable
-LoweredBlock = src.ControlFlow.CodeContainers.LoweredBlock
+if __name__ == '__main__':
+    Symbol = src.Symbols.Symbols.Symbol
+    LoweredStat = src.Codegen.Lowered.LoweredStat
+    SymbolTable = src.Symbols.Symbols.SymbolTable
+    LoweredBlock = src.ControlFlow.CodeContainers.LoweredBlock

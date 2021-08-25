@@ -223,6 +223,7 @@ class StatList(LoweredStat):
                f"of {len(self.children)} statements"
 
 
-Symbol = src.Symbols.Symbols.Symbol
-SymbolTable = src.Symbols.Symbols.SymbolTable
-BasicBlock = src.ControlFlow.BBs.BasicBlock
+if __name__ == '__main__':
+    Symbol = src.Symbols.Symbols.Symbol
+    SymbolTable = src.Symbols.Symbols.SymbolTable
+    BasicBlock = src.ControlFlow.BBs.BasicBlock

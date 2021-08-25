@@ -1,6 +1,6 @@
 from typing import Optional as Opt
 
-import src.Symbols.Symbols
+import src
 from src.Codegen.FrameUtils import FrozenLayout, StackLayout, StackSection
 from src.ControlFlow.BBs import BasicBlock, FakeBlock
 from src.ControlFlow.DataLayout import DataLayout, GlobalSymbolLayout, LocalSymbolLayout
@@ -95,7 +95,8 @@ class LoweredBlock(Lowered, DataLayout):
         return [self.entry_bb] + lst + [self.exit_bb]
 
     def prepare_layout(self, layout: Opt['StackLayout'],
-                       symtab: 'SymbolTable') -> 'StackLayout':
+                       symtab: 'SymbolTable',
+                       allocinfo: 'AllocInfo'):
         """
         Receives the layout of the parent, turns it into a frozen layout,
         creates a new layout and populates it by iterating over the instructions
@@ -121,8 +122,9 @@ class LoweredBlock(Lowered, DataLayout):
         new.add_section(book_keep)
 
         local_vars = StackSection('local_vars')
-        for sym in self.symtab:
-            local_vars.grow(symb=sym)
+        if self.function is not None:
+            for sym in self.symtab:
+                local_vars.grow(symb=sym)
         new.add_section(local_vars)
 
         new.add_section(StackSection('spill'))
@@ -131,9 +133,7 @@ class LoweredBlock(Lowered, DataLayout):
 
         for instr in BasicBlock.iter_bbs(self.entry_bb, instr=True):
             instr: 'LoweredStat'
-            new = instr.prepare_layout(new, self.symtab)
-        s: 'Symbol'
-        return new
+            instr.prepare_layout(layout=new, symtab=self.symtab, regalloc=allocinfo)
 
 
 class LoweredDef(Lowered, DataLayout):
@@ -163,7 +163,9 @@ class LowDefList(Lowered):
         self.lst: list[LoweredDef] = children
 
 
-Symbol = src.Symbols.Symbols.Symbol
-SymbolTable = src.Symbols.Symbols.SymbolTable
-LoweredStat = src.Codegen.Lowered.LoweredStat
-StatList = src.Codegen.Lowered.StatList
+if __name__ == '__main__':
+    Symbol = src.Symbols.Symbols.Symbol
+    SymbolTable = src.Symbols.Symbols.SymbolTable
+    LoweredStat = src.Codegen.Lowered.LoweredStat
+    StatList = src.Codegen.Lowered.StatList
+    AllocInfo = src.Allocator.Regalloc.AllocInfo

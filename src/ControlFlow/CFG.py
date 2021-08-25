@@ -1,6 +1,6 @@
 from typing import Optional as Opt
 
-import src.Symbols.Symbols
+import src
 from src.ControlFlow.CodeContainers import LoweredBlock, LoweredDef
 from src.utils.Exceptions import CFGException
 
@@ -98,5 +98,6 @@ class CFGIter:
             raise StopIteration()
 
 
-Symbol = src.Symbols.Symbols.Symbol
-BasicBlock = src.ControlFlow.BBs.BasicBlock
+if __name__ == '__main__':
+    Symbol = src.Symbols.Symbols.Symbol
+    BasicBlock = src.ControlFlow.BBs.BasicBlock

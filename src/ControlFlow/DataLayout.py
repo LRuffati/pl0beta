@@ -2,7 +2,7 @@
 Executed after the lowering phase to associate all variables and their respective
 data information
 """
-import src.ControlFlow.CodeContainers
+import src
 
 
 class SymbolLayout:
@@ -45,4 +45,5 @@ class DataLayout:
         root.perform_data_layout()
 
 
-LoweredBlock = src.ControlFlow.CodeContainers.LoweredBlock
+if __name__ == '__main__':
+    LoweredBlock = src.ControlFlow.CodeContainers.LoweredBlock

@@ -1,6 +1,6 @@
 from typing import Optional as Opt
 
-import src.Symbols.Symbols
+import src
 from src.utils.Exceptions import CodegenException
 
 
@@ -14,6 +14,9 @@ class StackLayout:
     """
 
     def __init__(self, older: Opt['FrozenLayout'] = None):
+        self.level = 0
+        if older:
+            self.level = older.level + 1
         self.older = older
         self.before_fp: list[str] = []
         self.after_fp: list[str] = []  # these lists grow away from the frame pointer
@@ -65,6 +68,7 @@ class FrozenLayout:
         :param layout:
         :param sections:
         """
+        self.level = layout.level
 
 
 class StackSection:
@@ -122,4 +126,5 @@ class StackSection:
         return self.symbols[symb]
 
 
-Symbol = src.Symbols.Symbols.Symbol
+if __name__ == '__main__':
+    Symbol = src.Symbols.Symbols.Symbol

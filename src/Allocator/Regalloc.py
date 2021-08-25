@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-import src.ControlFlow.BBs
+import src
 
 VarLiveInfo = namedtuple("VarLiveInfo", ["var", "defined", "kill", "interv"])
 SPILL_FLAG = 9999
