@@ -94,8 +94,53 @@ class LoweredBlock(Lowered, DataLayout):
 
         return [self.entry_bb] + lst + [self.exit_bb]
 
+    def prepare_layout(self, layout: Opt[StackLayout],
+                       symtab: 'src.IR.Symbols.SymbolTable') -> StackLayout:
+        """
+        Receives the layout of the parent, turns it into a frozen layout,
+        creates a new layout and populates it by iterating over the instructions
+        :param layout:
+        :param symtab:
+        :return:
+        """
+        if self.function is None:
+            # I'm the global block
+            prev = None
+        else:
+            prev = FrozenLayout(layout, ['args_in','local_vars'])
+        new = StackLayout(prev)
 
-class LoweredDef(Lowered, DataLayout):
+        levels_above = StackSection('level_ref')
+        levels_above.grow(words=max(0, self.symtab.lvl - 1))
+        new.add_section(levels_above, True)
+
+        new.add_section(StackSection('args_in'), True)
+
+        book_keep = StackSection('bookkeping')
+        book_keep.grow(words=2)
+        new.add_section(book_keep)
+
+        local_vars = StackSection('local_vars')
+        for sym in self.symtab:
+            local_vars.grow(symb=sym)
+        new.add_section(local_vars)
+
+        new.add_section(StackSection('spill'))
+        new.add_section(StackSection('regsave'))
+        new.add_section(StackSection('args_out'))
+
+        for instr in BBs.BasicBlock.iter_bbs(self.entry_bb, instr=True):
+            instr: src.Codegen.Lowered.LoweredStat
+            new = instr.prepare_layout(new, self.symtab)
+        s: src.IR.Symbols.Symbol
+        return new
+
+
+
+
+
+
+class LoweredDef(src.Codegen.CodegenUtils.Lowered, DataLayout):
     def set_label(self, label):
         raise IRException("Trying to set label of definition")
 
