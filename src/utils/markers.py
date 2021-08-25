@@ -1,5 +1,7 @@
 import abc
 
+import src.Codegen.FrameUtils
+
 
 class Codegen(abc.ABC):
 
@@ -8,6 +10,9 @@ class Codegen(abc.ABC):
                   layout: 'StackLayout' = None,
                   symtab: 'SymbolTable' = None) -> 'Code':
         pass
+
+    def prepare_layout(self, layout: 'StackLayout', symtab: 'SymbolTable') -> 'StackLayout':
+        return layout
 
 
 class Lowered(Codegen):
@@ -20,3 +25,7 @@ class Lowered(Codegen):
 
 class Code:
     pass
+
+
+StackLayout = src.Codegen.FrameUtils.StackLayout
+SymbolTable = src.Symbols.Symbols.SymbolTable

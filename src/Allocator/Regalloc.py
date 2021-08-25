@@ -1,5 +1,7 @@
 from collections import namedtuple
 
+import src.ControlFlow.BBs
+
 VarLiveInfo = namedtuple("VarLiveInfo", ["var", "defined", "kill", "interv"])
 SPILL_FLAG = 9999
 
@@ -141,3 +143,10 @@ class LinearScanRegAlloc(RegisterAllocator):
     @staticmethod
     def remove_non_regs(varset: set['Symbol']):
         return {var for var in varset if var.alloct == 'reg'}
+
+
+Symbol = src.Symbols.Symbols.Symbol
+CFG = src.ControlFlow.CFG.CFG
+BasicBlock = src.ControlFlow.BBs.BasicBlock
+LoweredStat = src.Codegen.Lowered.LoweredStat
+LoweredBlock = src.ControlFlow.CodeContainers.LoweredBlock

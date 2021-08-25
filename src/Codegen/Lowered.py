@@ -221,3 +221,8 @@ class StatList(LoweredStat):
     def __repr__(self):
         return f"Statlist{f' of {self.function}' if self.function else ''} " \
                f"of {len(self.children)} statements"
+
+
+Symbol = src.Symbols.Symbols.Symbol
+SymbolTable = src.Symbols.Symbols.SymbolTable
+BasicBlock = src.ControlFlow.BBs.BasicBlock

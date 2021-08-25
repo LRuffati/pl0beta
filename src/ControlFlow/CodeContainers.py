@@ -1,5 +1,6 @@
 from typing import Optional as Opt
 
+import src.Symbols.Symbols
 from src.Codegen.FrameUtils import FrozenLayout, StackLayout, StackSection
 from src.ControlFlow.BBs import BasicBlock, FakeBlock
 from src.ControlFlow.DataLayout import DataLayout, GlobalSymbolLayout, LocalSymbolLayout
@@ -106,7 +107,7 @@ class LoweredBlock(Lowered, DataLayout):
             # I'm the global block
             prev = None
         else:
-            prev = FrozenLayout(layout, ['args_in','local_vars'])
+            prev = FrozenLayout(layout, ['args_in', 'local_vars'])
         new = StackLayout(prev)
 
         levels_above = StackSection('level_ref')
@@ -160,3 +161,9 @@ class LowDefList(Lowered):
 
     def __init__(self, *, children):
         self.lst: list[LoweredDef] = children
+
+
+Symbol = src.Symbols.Symbols.Symbol
+SymbolTable = src.Symbols.Symbols.SymbolTable
+LoweredStat = src.Codegen.Lowered.LoweredStat
+StatList = src.Codegen.Lowered.StatList

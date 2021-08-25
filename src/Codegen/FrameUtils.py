@@ -1,5 +1,6 @@
 from typing import Optional as Opt
 
+import src.Symbols.Symbols
 from src.utils.Exceptions import CodegenException
 
 
@@ -11,10 +12,11 @@ class StackLayout:
     At the global level it'll just contain the space needed for spill
     variables and for the register saving
     """
+
     def __init__(self, older: Opt['FrozenLayout'] = None):
         self.older = older
         self.before_fp: list[str] = []
-        self.after_fp: list[str] = [] # these lists grow away from the frame pointer
+        self.after_fp: list[str] = []  # these lists grow away from the frame pointer
         self.sections: dict[str, tuple['StackSection', bool]] = {}
 
     def offset(self, name: str) -> int:
@@ -32,7 +34,7 @@ class StackLayout:
             sect, _ = self.sections[n]
             off += sect.size
         if before:
-            off = (off + section.size)*(-1)
+            off = (off + section.size) * (-1)
         return off
 
     def get_section(self, name: str) -> 'StackSection':
@@ -69,6 +71,7 @@ class StackSection:
     """
     A contiguous section of the stack in a frame
     """
+
     def __init__(self, name, size=0, visibility=False):
         self.name = name
         self.size = size
@@ -117,3 +120,6 @@ class StackSection:
         if symb not in self.symbols:
             raise CodegenException("Symbol not in section")
         return self.symbols[symb]
+
+
+Symbol = src.Symbols.Symbols.Symbol

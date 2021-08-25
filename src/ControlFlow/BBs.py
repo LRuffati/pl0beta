@@ -1,6 +1,7 @@
 from functools import reduce
 from typing import Optional as Opt
 
+import src.Symbols.Symbols
 from src.Codegen.Lowered import EmptyStat, BranchStat
 from src.Symbols.Symbols import TYPENAMES
 from src.utils.Exceptions import CFGException
@@ -239,3 +240,9 @@ class FakeBlock(BasicBlock):
         else:
             return f"{self.label_in}: Entry for {self.function if self.function else 'glob'}" \
                    f" -> {'|'.join([repr(i.label_in) for i in self.successors()])}"
+
+
+Symbol = src.Symbols.Symbols.Symbol
+LoweredStat = src.Codegen.Lowered.LoweredStat
+SymbolTable = src.Symbols.Symbols.SymbolTable
+LoweredBlock = src.ControlFlow.CodeContainers.LoweredBlock
