@@ -1,6 +1,7 @@
 from functools import reduce
 
 from MixedTrees.src.MixedTrees import MixedTree
+from src.utils.Exceptions import IRException
 from src.utils.markers import Codegen
 
 
@@ -13,7 +14,10 @@ class SymbolTable:
         else:
             self.lvl = self.par.lvl + 1
 
-    def append(self, symb):
+    def append(self, symb: 'Symbol'):
+        if symb.level is not None:
+            raise IRException('Symbol already in symtab')
+        symb.level = self.lvl
         self.lst.append(symb)
 
     def lookup(self, targ: str, direct=True):
@@ -24,6 +28,7 @@ class SymbolTable:
                 if self.lvl == 0:
                     return s  # global vars
                 else:
+                    return s # TODO should I handle them differently?
                     raise NotImplementedError("Need to implement properly indirect "
                                               "lookup so that the symbol knows it "
                                               "references a different stack frame "
@@ -130,6 +135,7 @@ class Symbol(MixedTree, Codegen):
         self.value = value
         self.alloct = alloct
         self.allocinfo = None
+        self.level = None
 
     def set_alloc_info(self, allocinfo):
         self.allocinfo = allocinfo

@@ -61,6 +61,11 @@ class ReadStat(LoweredStat):
 class BranchStat(LoweredStat):
     def __init__(self, *, target, returns=False, condition=None, negcond=False):
         self.target = target
+        # If the call is to a function the level of the symbol shows how many
+        # frame pointers to provide. Level 0 the parent is global so 0, level 1
+        # I need to give the pointer to the stack of the level 0 function it was defined
+        # inside of etc
+
         self.rets = returns
         self.condition = condition
         self.negcond = negcond
