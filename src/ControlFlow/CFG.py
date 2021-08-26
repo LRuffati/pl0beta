@@ -97,6 +97,9 @@ class CFGIter:
         except IndexError:
             raise StopIteration()
 
+    def __iter__(self):
+        return self
+
 
 if __name__ == '__main__':
     Symbol = src.Symbols.Symbols.Symbol

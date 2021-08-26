@@ -149,6 +149,7 @@ class BasicBlock:
         for i in reversed(self.statements):
             currently_live -= i.get_defined()
             currently_live |= i.get_used()
+            # TODO: provide this info to function call statements to allow register backup
         if not currently_live == self.live_in:
             raise CFGException("Block level and instruction level liveness don't match")
 
@@ -202,12 +203,12 @@ class BasicBlock:
             bb: BasicBlock = queue.pop()
             if instr:
                 for instr in bb.statements:
-                    yield instr
+                    yield bb, instr
             else:
-                visited.add(bb)
                 yield bb
+            visited.add(bb)
+
             queue.extend(set(bb.successors()) - visited)
-        raise StopIteration()
     # TODO: allow inserting instruction/basic blocks within a pre-existing
     #  basic block
 

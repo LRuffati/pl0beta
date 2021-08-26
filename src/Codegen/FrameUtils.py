@@ -14,10 +14,12 @@ class StackLayout:
     """
 
     def __init__(self, older: Opt['FrozenLayout'] = None):
-        self.level = 0
         if older:
             self.level = older.level + 1
-        self.older = older
+        else:
+            self.level = 0
+        self.parent = older
+
         self.before_fp: list[str] = []
         self.after_fp: list[str] = []  # these lists grow away from the frame pointer
         self.sections: dict[str, tuple['StackSection', bool]] = {}
@@ -60,8 +62,11 @@ class StackLayout:
     def has_section(self, name: str):
         return name in self.sections
 
+    def get_level(self, lvl: Opt[int]) -> 'StackLayout':
+        pass
 
-class FrozenLayout:
+
+class FrozenLayout(StackLayout):
     def __init__(self, layout: StackLayout, sections: list[str]):
         """
         Create a frozen layout from the given one by selecting only the given sections
@@ -69,6 +74,16 @@ class FrozenLayout:
         :param sections:
         """
         self.level = layout.level
+        self.parent = layout.parent
+        self.before_fp: list[str] = []
+        self.after_fp: list[str] = []
+        self.sections: dict[str, tuple['StackSection', bool]]
+
+    def get_level(self, lvl: Opt[int]) -> 'StackLayout':
+        pass
+
+    def get_section(self, section: str) -> 'StackSection':
+        pass
 
 
 class StackSection:
@@ -102,6 +117,7 @@ class StackSection:
         else:
             size = words
         self.size += size
+        self.max_size = max(self.size, self.max_size)
         return True
 
     def shrink(self, *, words: int = None, symb: 'Symbol' = None):
@@ -119,6 +135,16 @@ class StackSection:
             raise CodegenException("Need either a symbol or a size to shrink a stack section")
         else:
             self.size -= words
+
+    def set_size(self, size=0):
+        """
+        Sets a size and the maximum. The size of the section will be the maximum of the previous
+        size and the size provided
+        :param size:
+        :return:
+        """
+        self.max_size = max(size, self.max_size)
+        self.size = max(size, self.size)
 
     def get_offset(self, symb: 'Symbol'):
         if symb not in self.symbols:

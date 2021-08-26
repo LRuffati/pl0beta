@@ -43,7 +43,7 @@ class LoweredBlock(Lowered, DataLayout):
             for var in self.symtab:
                 if var.stype.size == 0:
                     continue
-                var.set_alloc_info(GlobalSymbolLayout(prefix+var.name, var.stype.size//8))
+                var.set_alloc_info(GlobalSymbolLayout(prefix + var.name, var.stype.size // 8))
         else:
             prefix = "_l_"
             offs = 0
@@ -94,15 +94,11 @@ class LoweredBlock(Lowered, DataLayout):
 
         return [self.entry_bb] + lst + [self.exit_bb]
 
-    def prepare_layout(self, layout: Opt['StackLayout'],
-                       symtab: 'SymbolTable',
-                       allocinfo: 'AllocInfo'):
+    def prepare_layout(self, *, layout: Opt['StackLayout'] = None,
+                       allocinfo: 'AllocInfo' = None, **othr) -> 'StackLayout':
         """
         Receives the layout of the parent, turns it into a frozen layout,
         creates a new layout and populates it by iterating over the instructions
-        :param layout:
-        :param symtab:
-        :return:
         """
         if self.function is None:
             # I'm the global block
@@ -112,10 +108,17 @@ class LoweredBlock(Lowered, DataLayout):
         new = StackLayout(prev)
 
         levels_above = StackSection('level_ref')
-        levels_above.grow(words=max(0, self.symtab.lvl - 1))
+        if self.function is None:  # if the block is the global block
+            levels_above.set_size(0)
+        else:
+            levels_above.set_size(self.function.level)
         new.add_section(levels_above, True)
 
         new.add_section(StackSection('args_in'), True)
+
+        reg_save_in = StackSection('regsave_in', False)
+        reg_save_in.set_size(len(self.get_regs_save()))
+        new.add_section(reg_save_in)
 
         book_keep = StackSection('bookkeping')
         book_keep.grow(words=2)
@@ -127,13 +130,49 @@ class LoweredBlock(Lowered, DataLayout):
                 local_vars.grow(symb=sym)
         new.add_section(local_vars)
 
-        new.add_section(StackSection('spill'))
-        new.add_section(StackSection('regsave'))
+        spll = StackSection('spill')
+        spll.grow(words=allocinfo.numspill)
+        new.add_section(spll)
+
+        new.add_section(StackSection('regsave_out'))
         new.add_section(StackSection('args_out'))
 
-        for instr in BasicBlock.iter_bbs(self.entry_bb, instr=True):
+        for bb, instr in BasicBlock.iter_bbs(self.entry_bb, instr=True):
             instr: 'LoweredStat'
-            instr.prepare_layout(layout=new, symtab=self.symtab, regalloc=allocinfo)
+            instr.prepare_layout(layout=new, symtab=self.symtab, regalloc=allocinfo, bblock=bb, container=self)
+
+        return new
+
+    def get_regs_save(self):
+        return [4, 5, 6, 7, 8, 9, 10]
+
+    def emit_code(self, code: 'Code', *,
+                  layout: 'StackLayout' = None,
+                  regalloc: 'AllocInfo' = None,
+                  **other) -> Opt['Code']:
+        code_for_later: list['Code'] = []
+
+        for defun in self.defs.lst:
+            block_fun = defun.body
+            layout_child = block_fun.prepare_layout(layout=layout,
+                                                    allocinfo=regalloc)
+            code_for_later.append(block_fun.emit_code(code,
+                                                      layout=layout_child,
+                                                      regalloc=regalloc))
+
+        later_code_instr: list['Code'] = []
+        for bb, instr in BasicBlock.iter_bbs(self.entry_bb, instr=True):
+            instr: 'LoweredStat'
+            bb: 'BasicBlock'
+            later_code_instr.append(instr.emit_code(code,
+                                                    layout=layout,
+                                                    symtab=self.symtab,
+                                                    regalloc=regalloc,
+                                                    bblock=bb,
+                                                    container=self))
+
+        # TODO: do something with the two lists if needed
+        return None
 
 
 class LoweredDef(Lowered, DataLayout):
@@ -169,3 +208,4 @@ if __name__ == '__main__':
     LoweredStat = src.Codegen.Lowered.LoweredStat
     StatList = src.Codegen.Lowered.StatList
     AllocInfo = src.Allocator.Regalloc.AllocInfo
+    Code = src.Codegen.Code.Code
