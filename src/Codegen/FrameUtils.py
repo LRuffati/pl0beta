@@ -91,9 +91,9 @@ class FrozenLayout(StackLayout):
         self.level = layout.level
         self.parent = layout.parent
         self.before_fp: list[(str, int)] = [(i, layout.offset(i)) for i in layout.before_fp if i in sections]
-        self.after_fp: list[str] = [i for i in layout.after_fp if i in sections]
+        self.after_fp: list[(str, int)] = [(i, layout.offset(i)) for i in layout.after_fp if i in sections]
         self.sections: dict[str, tuple['FrozenSection', bool]] = \
-            {k:(FrozenSection(v[0]), v[1]) for k,v in layout.sections.items()
+            {k: (FrozenSection(v[0]), v[1]) for k, v in layout.sections.items()
              if k in sections}
         self._frame_s = layout.frame_size()
 
@@ -136,7 +136,10 @@ class StackSection:
         """
         size = 0
         if symb is not None:
-            size = symb.stype.size // 32 # 1 register = 32 bits
+            size = (symb.stype.size // 32)  # 1 register = 32 bits
+            if symb.stype.size % 32:
+                size += 1
+
             if symb in self.symbols:
                 return False
             self.symbols[symb] = self._size

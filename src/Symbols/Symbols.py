@@ -167,7 +167,7 @@ class Symbol(MixedTree, Codegen):
         self.stype: Type = stype
         self.value = value
         self.alloct = alloct
-        self.allocinfo = None
+        self.allocinfo: 'SymbolLayout' = None
         self.level = None
 
     def set_alloc_info(self, allocinfo):
@@ -294,3 +294,4 @@ if __name__ == '__main__':
     Code = src.Codegen.Code.Code
     StackLayout = src.Codegen.FrameUtils.StackLayout
     AllocInfo = src.Allocator.Regalloc.AllocInfo
+    SymbolLayout = src.ControlFlow.DataLayout.SymbolLayout

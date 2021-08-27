@@ -209,7 +209,7 @@ class EmptyStat(LoweredStat):
                   bblock: 'BasicBlock' = None,
                   container: 'LoweredBlock' = None) -> Opt['Code']:
         if self.label:
-            code.label(self.label)
+            code.label(self.label.name)
 
 
 class LoadPtrToSymb(LoweredStat):
