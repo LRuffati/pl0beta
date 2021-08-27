@@ -131,7 +131,6 @@ class LoweredBlock(Lowered, DataLayout):
         new.add_section(local_vars)
 
         spll = StackSection('spill')
-        spll.grow(words=allocinfo.numspill)
         new.add_section(spll)
 
         new.add_section(StackSection('regsave_out'))

@@ -45,8 +45,16 @@ class LoweredStat(Lowered):
                        regalloc: 'AllocInfo' = None,
                        bblock: 'BasicBlock' = None,
                        container: 'LoweredBlock' = None) -> Opt['StackLayout']:
+
+        spild = layout.get_section('spill')
+
         used_vars = self.get_used()
         def_vars = self.get_defined()
+        vars = used_vars | def_vars
+        vars_regs = [i for i in vars if i.alloct == 'reg']
+        for i in vars_regs:
+            if regalloc.is_spilled_var(i):
+                spild.grow(symb=i)
 
 
 class BranchStat(LoweredStat):
@@ -105,6 +113,28 @@ class BranchStat(LoweredStat):
 
     def get_regs_to_save(self, bblock: 'BasicBlock', regalloc: 'AllocInfo') -> list:
         return [0, 1, 2, 3]
+
+    def emit_code(self, code: 'Code', *,
+                  layout: 'StackLayout' = None,
+                  symtab: 'SymbolTable' = None,
+                  regalloc: 'AllocInfo' = None,
+                  bblock: 'BasicBlock' = None,
+                  container: 'LoweredBlock' = None) -> Opt['Code']:
+        if self.rets:
+            # TODO: code to save registers and pass arguments
+            #   use as scratch registers one of the saved ones
+            pass
+
+        if self.condition:
+            # TODO: conditional jump
+            pass
+        else:
+            # TODO: unconditional jump
+            pass
+
+        if self.rets:
+            # TODO: restore registers
+            pass
 
 
 class PrintStat(BranchStat):
@@ -282,7 +312,6 @@ class BinStat(LoweredStat):
 
         self.dest.gen_store(code, layout, symtab, regalloc)
         return
-
 
 
 class UnaryStat(LoweredStat):

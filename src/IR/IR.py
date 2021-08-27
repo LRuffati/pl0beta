@@ -172,7 +172,7 @@ class UnExpr(Expression):
 class CallExpr(Expression):
     def __init__(self, function=None, symtab=None, parameters=None):
         super(CallExpr, self).__init__([], symtab)
-        self.symbol = function
+        self.target: str = function
         if parameters:
             self.children = parameters[:]
 
@@ -303,7 +303,7 @@ class CallStat(Statement):
         self.call: CallExpr = call_expr
 
     def lower(self) -> 'Lowered':
-        dest = self.call.symbol
+        dest = self.symtab.lookup(self.call.target)
         return lwr.BranchStat(target=dest, returns=True)
 
 

@@ -38,6 +38,10 @@ class AllocInfo:
     def spill_room(self):
         return self.numspill * 4
 
+    def is_spilled_var(self, var: 'Symbol'):
+        reg = self.var_to_reg.get(var, -1)
+        return reg >= self.nregs - 2
+
     def dematerialize_spilled_var_if_necessary(self, var: 'Symbol'):
         """
         Flags a spilled symbol as spilled after it had been temporarily loaded into a

@@ -37,9 +37,9 @@ class StackLayout:
             if n == name:
                 break
             sect, _ = self.sections[n]
-            off += sect.size
+            off += sect.max_size
         if before:
-            off = (off + section.size) * (-1)
+            off = (off + section.max_size) * (-1)
         return off
 
     def get_section(self, name: str) -> 'StackSection':
@@ -63,7 +63,22 @@ class StackLayout:
         return name in self.sections
 
     def get_level(self, lvl: Opt[int]) -> 'StackLayout':
-        pass
+        if self.level < lvl:
+            raise CodegenException("Trying to get a lever higher than self")
+        if self.level == lvl:
+            return self
+        else:
+            return self.parent.get_level(lvl)
+
+    def frame_size(self):
+        """
+        :return: The size of the frame in register equivalent words after
+        the frame pointer
+        """
+        last_sect = self.after_fp[-1]
+        sec = self.get_section(last_sect)
+        off = self.offset(last_sect)
+        return off + sec.max_size
 
 
 class FrozenLayout(StackLayout):
@@ -75,15 +90,28 @@ class FrozenLayout(StackLayout):
         """
         self.level = layout.level
         self.parent = layout.parent
-        self.before_fp: list[str] = []
-        self.after_fp: list[str] = []
-        self.sections: dict[str, tuple['StackSection', bool]]
+        self.before_fp: list[(str, int)] = [(i, layout.offset(i)) for i in layout.before_fp if i in sections]
+        self.after_fp: list[str] = [i for i in layout.after_fp if i in sections]
+        self.sections: dict[str, tuple['FrozenSection', bool]] = \
+            {k:(FrozenSection(v[0]), v[1]) for k,v in layout.sections.items()
+             if k in sections}
+        self._frame_s = layout.frame_size()
 
-    def get_level(self, lvl: Opt[int]) -> 'StackLayout':
-        pass
+    def add_section(self, section: 'StackSection', before=False):
+        raise CodegenException("Trying to edit a frozen layout")
 
-    def get_section(self, section: str) -> 'StackSection':
-        pass
+    def offset(self, name: str) -> int:
+        sec, bef = self.sections[name]
+        if bef:
+            lst = self.before_fp
+        else:
+            lst = self.after_fp
+        for nam, off in lst:
+            if nam == name:
+                return off
+
+    def frame_size(self):
+        return self._frame_s
 
 
 class StackSection:
@@ -93,31 +121,31 @@ class StackSection:
 
     def __init__(self, name, size=0, visibility=False):
         self.name = name
-        self.size = size
+        self._size = size
         self.vis = visibility
         self.max_size = 0
         self.symbols: dict['Symbol', int] = {}
 
     def grow(self, *, words: int = None, symb: 'Symbol' = None) -> bool:
         """
-        Grow the size by the given number of words (1 word = 8 bytes)
+        Grow the size by the given number of words (1 word = space for 1 register)
         or by adding the given Symbol
         :param words:
         :param symb:
-        :return: False if the section was grown, True otherwise
+        :return: If the section was grown
         """
         size = 0
         if symb is not None:
-            size = symb.stype.size // 8
+            size = symb.stype.size // 32 # 1 register = 32 bits
             if symb in self.symbols:
                 return False
-            self.symbols[symb] = self.max_size
+            self.symbols[symb] = self._size
         elif words is None:
             raise CodegenException("Need either a symbol or size to add to stack section")
         else:
             size = words
-        self.size += size
-        self.max_size = max(self.size, self.max_size)
+        self._size += size
+        self.max_size = max(self._size, self.max_size)
         return True
 
     def shrink(self, *, words: int = None, symb: 'Symbol' = None):
@@ -128,28 +156,44 @@ class StackSection:
         :return:
         """
         if symb in self.symbols:
-            self.size -= symb.stype.size // 8
+            self._size -= symb.stype.size // 32
         elif symb is not None:
             raise CodegenException("Trying to remove from section a symbol that was never added")
         elif words is None:
             raise CodegenException("Need either a symbol or a size to shrink a stack section")
         else:
-            self.size -= words
+            self._size -= words
 
     def set_size(self, size=0):
         """
         Sets a size and the maximum. The size of the section will be the maximum of the previous
         size and the size provided
-        :param size:
+        :param size: the number of register-equivalent words
         :return:
         """
         self.max_size = max(size, self.max_size)
-        self.size = max(size, self.size)
+        self._size = max(size, self._size)
 
     def get_offset(self, symb: 'Symbol'):
         if symb not in self.symbols:
             raise CodegenException("Symbol not in section")
         return self.symbols[symb]
+
+
+class FrozenSection(StackSection):
+    def __init__(self, section: StackSection):
+        self.name = section.name
+        self.max_size = section.max_size
+        self.symbols: dict['Symbol', int] = section.symbols.copy()
+
+    def grow(self, *, words: int = None, symb: 'Symbol' = None) -> bool:
+        raise CodegenException("Can't grow frozen section")
+
+    def shrink(self, *, words: int = None, symb: 'Symbol' = None):
+        raise CodegenException("Can't shrink frozen section")
+
+    def set_size(self, size=0):
+        raise CodegenException("Can't set size of frozen section")
 
 
 if __name__ == '__main__':

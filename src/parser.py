@@ -50,7 +50,7 @@ class ArrayUtils(Parser, ABC):
         return offset
 
     @staticmethod
-    def linearize_multid_vector(idxs, target, symtab):
+    def linearize_multid_vector(idxs, target: 'Symbol', symtab):
         offset = None
         for i in range(0, len(target.stype.dims)):
             if i + 1 < len(target.stype.dims):
@@ -194,7 +194,7 @@ class FuncCall(Statement):
     def parse(self, symtab: SymbolTable, *args, **kwargs) -> IRNode:
         self.lxr.expect('callsym')
         _, fun = self.lxr.expect('ident')
-        return ir.CallStat(call_expr=ir.CallExpr(function=symtab.lookup(fun),
+        return ir.CallStat(call_expr=ir.CallExpr(function=fun,
                                                  symtab=symtab),
                            symtab=symtab)
 

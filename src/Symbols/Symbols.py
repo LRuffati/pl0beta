@@ -75,6 +75,13 @@ class SymbolTable:
 
 class Type:
     def __init__(self, name, size, basetype, qualifiers=None):
+        """
+
+        :param name: The name of the type
+        :param size: The size in bits
+        :param basetype:
+        :param qualifiers:
+        """
         if qualifiers is None:
             qualifiers = []
         self.qual_list = qualifiers
